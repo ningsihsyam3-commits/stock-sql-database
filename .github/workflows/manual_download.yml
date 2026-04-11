@@ -21,6 +21,9 @@ jobs:
 
       - name: Run Downloader
         run: python download_data.py
+        
+      - name: View Database Content # Langkah baru untuk melihat isi
+        run: python view_data.py  
 
       - name: Commit and Push Database
         run: |
