@@ -1,0 +1,29 @@
+name: Manual Historical Download (SQLAlchemy)
+on:
+  workflow_dispatch: # Ini yang memunculkan tombol "Run" manual
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas sqlalchemy
+
+      - name: Run Downloader
+        run: python download_data.py
+
+      - name: Commit and Push Database
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add database_investasi.db
+          git commit -m "Update database: $(date)" || echo "No changes to commit"
+          git push
