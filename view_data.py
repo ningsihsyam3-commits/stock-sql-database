@@ -1,20 +1,27 @@
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Koneksi ke database yang sudah ada
+# Koneksi ke database
 DB_NAME = "database_investasi.db"
 engine = create_engine(f'sqlite:///{DB_NAME}')
 
-# Query sederhana menggunakan Pandas
+print("--- MEMBACA DATABASE SQL ---")
+
 try:
-    # Mengambil 10 data terbaru berdasarkan tanggal
+    # Query untuk mengambil data
     query = "SELECT * FROM history_saham ORDER BY date DESC, ticker ASC LIMIT 10"
+    
+    # Tambahkan index_col=None atau reset_index untuk memastikan Tanggal muncul
     df = pd.read_sql(query, engine)
     
-    print("--- 10 DATA TERAKHIR DI DATABASE ---")
     if df.empty:
-        print("Database masih kosong.")
+        print("Database kosong.")
     else:
-        print(df.to_string(index=False))
+        print("\nDATA TERBARU:")
+        print("-" * 40)
+        # Menampilkan tabel dengan format yang lebih lengkap
+        print(df.to_string(index=True)) 
+        print("-" * 40)
+        
 except Exception as e:
-    print(f"Terjadi kesalahan saat membaca database: {e}")
+    print(f"Error: {e}")
