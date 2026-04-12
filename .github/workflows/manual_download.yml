@@ -39,6 +39,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add database_investasi.db
+          git add database_investasi.db tren_saham.png
           # Perbaikan agar tidak error jika tidak ada data baru
           git commit -m "Update database: $(date)" || echo "No changes to commit"
           git push
