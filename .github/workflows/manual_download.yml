@@ -25,8 +25,14 @@ jobs:
       - name: View Database Content # Langkah baru untuk melihat isi
         run: python view_data.py
 
+      - name: Install dependencies
+        run: pip install yfinance pandas sqlalchemy matplotlib # Tambah matplotlib
+
       - name: Run Analysis
-        run: python analysis.py  
+        run: python analysis.py
+
+      - name: Create Visualization # Langkah baru
+        run: python visualize.py  
 
       - name: Commit and Push Database
         run: |
