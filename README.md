@@ -1,8 +1,3 @@
-# stock-sql-database
-
-
-# Project ini dikembangkan untuk memantau performa saham secara otomatis menggunakan infrastruktur berbasis Cloud (GitHub Actions), menggabungkan analisis fundamental dan otomasi data.
-
 # 📈 Automated Stock Data Pipeline
 
 Proyek ini adalah sistem otomatisasi data pipeline end-to-end yang dirancang untuk mengumpulkan, menyimpan, menganalisis, dan memvisualisasikan data pasar saham secara otomatis.
