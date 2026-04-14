@@ -14,7 +14,7 @@ Base = declarative_base()
 # Di sini kita tambahkan kolom ma5 dan ma20
 class HargaSaham(Base):
     __tablename__ = 'history_saham'
-    date = Column(Date, primary_key=True)
+    date = Column(Date, primary_key=True) 
     ticker = Column(String, primary_key=True)
     close_price = Column(Float)
     ma5 = Column(Float)   # Kolom baru
@@ -63,8 +63,9 @@ def download_stock_data():
     session.commit()
     print(f"Sukses! {count} baris data baru ditambahkan.")
     
-    # Mengembalikan dataframe untuk digunakan oleh main.py jika diperlukan
-    return pd.read_sql(f"SELECT * FROM history_saham", engine)
+    # PENTING: Ambil data terbaru dari database agar kolom MA5 dan MA20 ikut terbawa
+    df_result = pd.read_sql("SELECT * FROM history_saham", engine)
+    return df_result
 
 if __name__ == "__main__":
     download_stock_data()
