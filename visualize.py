@@ -1,38 +1,31 @@
-import pandas as pd
 import matplotlib.pyplot as plt
-from sqlalchemy import create_engine
 
-# Koneksi ke database
-engine = create_engine('sqlite:///database_investasi.db')
-
-def buat_grafik():
-    # 1. Ambil data
-    df = pd.read_sql("SELECT * FROM history_saham ORDER BY date ASC", engine)
-    
-    if df.empty:
+def buat_grafik_tren(df):
+    if df is None or df.empty:
         print("Data kosong, tidak bisa membuat grafik.")
         return
 
-    # 2. Pengaturan Grafis
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 7))
     
-    # 3. Loop untuk setiap kode saham (ticker)
-    for ticker in df['ticker'].unique():
+    # Loop untuk setiap ticker
+    tickers = df['ticker'].unique()
+    for ticker in tickers:
         data_saham = df[df['ticker'] == ticker]
-        plt.plot(data_saham['date'], data_saham['close_price'], marker='o', label=ticker)
+        
+        # Plot Harga Asli
+        line, = plt.plot(data_saham['date'], data_saham['close_price'], marker='o', label=f'{ticker} Price')
+        
+        # Plot Moving Average (Gunakan warna yang sama dengan harga asli tapi garis putus-putus)
+        color = line.get_color()
+        plt.plot(data_saham['date'], data_saham['MA5'], linestyle='--', alpha=0.6, color=color, label=f'{ticker} MA5')
 
-    # 4. Mempercantik Tampilan
-    plt.title('Tren Harga Penutupan Saham', fontsize=14)
+    plt.title('Tren Harga & Moving Average (MA5)', fontsize=14, fontweight='bold')
     plt.xlabel('Tanggal', fontsize=12)
     plt.ylabel('Harga (IDR)', fontsize=12)
-    plt.legend()
-    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left') # Legend di luar agar rapi
+    plt.grid(True, linestyle='--', alpha=0.5)
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    # 5. Simpan sebagai gambar
     plt.savefig('tren_saham.png')
-    print("Grafik berhasil disimpan sebagai 'tren_saham.png'")
-
-if __name__ == "__main__":
-    buat_grafik()
+    print("Grafik baru (Price + MA5) berhasil disimpan.")
