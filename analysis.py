@@ -28,3 +28,19 @@ def hitung_performa():
 
 if __name__ == "__main__":
     hitung_performa()
+
+
+def calculate_moving_averages(df):
+    """
+    Fungsi untuk menghitung Moving Average 5 dan 20 hari.
+    Input: DataFrame dengan kolom 'Simbol', 'Tanggal', 'Close'
+    Output: DataFrame yang sudah ditambah kolom MA5 dan MA20
+    """
+    # Pastikan data terurut berdasarkan tanggal
+    df = df.sort_values(by=['Simbol', 'Tanggal'])
+    
+    # Menghitung MA per simbol agar tidak bercampur
+    df['MA5'] = df.groupby('Simbol')['Close'].transform(lambda x: x.rolling(window=5).mean())
+    df['MA20'] = df.groupby('Simbol')['Close'].transform(lambda x: x.rolling(window=20).mean())
+    
+    return df
