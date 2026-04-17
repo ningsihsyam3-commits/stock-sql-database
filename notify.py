@@ -31,9 +31,8 @@ def kirim_telegram(pesan):
 def cek_sinyal_dan_notifikasi():
     engine = create_engine('sqlite:///database_investasi.db')
     try:
+        # Mengambil data terbaru
         df = pd.read_sql("SELECT * FROM history_saham ORDER BY date DESC", engine)
-        
-        # Ambil data terbaru untuk setiap ticker
         hari_ini = df.groupby('ticker').head(1)
         
         pesan_final = "🔔 *LAPORAN SAHAM HARIAN* 🔔\n"
@@ -43,22 +42,33 @@ def cek_sinyal_dan_notifikasi():
             ticker = row['ticker']
             harga = row['close_price']
             ma20 = row['ma20']
+            ma5 = row['ma5'] # Kita tambahkan MA5 juga sebagai patokan tambahan
             
-            # Logika sederhana: Cek posisi harga terhadap MA20
+            # Logika Sinyal
             if ma20 and harga > ma20:
-                sinyal = "✅ *Bullish* (Di atas MA20)"
+                sinyal = "✅ *Bullish*"
             elif ma20 and harga < ma20:
-                sinyal = "⚠️ *Bearish* (Di bawah MA20)"
+                sinyal = "⚠️ *Bearish*"
             else:
                 sinyal = "⚪ *Neutral*"
                 
             pesan_final += f"📈 *{ticker}*\n"
             pesan_final += f"💰 Harga: Rp{harga:,.0f}\n"
-            pesan_final += f"📊 Status: {sinyal}\n\n"
+            
+            # Menampilkan angka patokan MA dalam laporan
+            if ma5:
+                pesan_final += f"📍 Patokan MA5: Rp{ma5:,.0f}\n"
+            if ma20:
+                pesan_final += f"📍 Patokan MA20: Rp{ma20:,.0f}\n"
+                
+            pesan_final += f"📊 Status: {sinyal}\n"
+            pesan_final += "----------------------------\n"
         
         kirim_telegram(pesan_final)
     except Exception as e:
         print(f"Error saat membaca database: {e}")
-
+        
 if __name__ == "__main__":
     cek_sinyal_dan_notifikasi()
+
+
