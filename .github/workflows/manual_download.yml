@@ -16,12 +16,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yfinance pandas sqlalchemy pandas_ta matplotlib mplfinance requests
+          pip install yfinance pandas sqlalchemy pandas-ta matplotlib mplfinance requests
 
       - name: Run Data Downloader
         env:
