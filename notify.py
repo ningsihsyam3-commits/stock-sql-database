@@ -38,12 +38,33 @@ def cek_sinyal_dan_notifikasi():
         pesan_final = "🔔 *LAPORAN SAHAM HARIAN* 🔔\n"
         pesan_final += "----------------------------\n\n"
         
-        for _, row in hari_ini.iterrows():
-            ticker = row['ticker']
-            harga = row['close_price']
-            ma5 = row['ma5']
-            ma20 = row['ma20']
-            rsi = row['rsi']
+    for _, row in hari_ini.iterrows():
+        ticker = row['ticker']
+        harga = row['close_price']
+        ma5 = row['ma5']
+        ma20 = row['ma20']
+        rsi = row['rsi']
+
+        # --- LOGIKA PROTEKSI (Agar tidak error jika data None) ---
+        
+        # 1. Logika Tren (Hanya jalan jika ma20 tidak None)
+        if ma20 is not None:
+            status_ma = "✅ *Bullish*" if harga > ma20 else "⚠️ *Bearish*"
+        else:
+            status_ma = "⏳ *Menghitung MA20...*"
+
+        # 2. Logika RSI (Hanya jalan jika rsi tidak None)
+        if rsi is not None:
+            if rsi >= 70:
+                status_rsi = f"🔥 *Overbought* ({rsi:.1f})"
+            elif rsi <= 30:
+                status_rsi = f"❄️ *Oversold* ({rsi:.1f})"
+            else:
+                status_rsi = f"⚖️ *Netral* ({rsi:.1f})"
+        else:
+            status_rsi = "⏳ *Menghitung RSI...*"
+            
+        # --- LANJUT KE PENYUSUNAN PESAN ---
         
         # 1. Logika Tren (Harga vs MA20)
         if harga > ma20:
