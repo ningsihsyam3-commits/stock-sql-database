@@ -33,54 +33,51 @@ def kirim_gambar_telegram(chat_id, image_path, caption):
 
 def buat_grafik(df_ticker, ticker):
     """Fungsi untuk menggambar Candlestick, MA, dan RSI"""
-    # Pastikan index adalah Datetime (kebutuhan mplfinance)
+    # Pastikan index adalah Datetime
     df_ticker = df_ticker.copy()
     df_ticker['date'] = pd.to_datetime(df_ticker['date'])
     df_ticker = df_ticker.set_index('date')
     
-    # Menyiapkan data untuk Candlestick (mplfinance butuh kolom OHLC)
-    # Kita butuh Open, High, Low. Jika belum disimpan di DB, 
-    # untuk sementara kita gunakan Close sebagai perwakilan OHLC 
-    # agar tidak perlu update download_data lagi.
-    # (Di masa depan, sebaiknya download O,H,L juga)
-    if 'open' not in df_ticker:
-        df_ticker['open'] = df_ticker['close_price']
-        df_ticker['high'] = df_ticker['close_price']
-        df_ticker['low'] = df_ticker['close_price']
+    # --- PERBAIKAN KRUSIAL DI SINI ---
+    # mplfinance WAJIB menggunakan huruf kapital di depan: Open, High, Low, Close, Volume
+    df_ticker['Open']  = df_ticker['close_price']
+    df_ticker['High']  = df_ticker['close_price']
+    df_ticker['Low']   = df_ticker['close_price']
+    df_ticker['Close'] = df_ticker['close_price'] # Tambahkan ini!
     
-    # 1. Menyiapkan Plot MA (Moving Average)
+    # Tambahkan Volume jika ada di database Anda
+    if 'volume' in df_ticker.columns:
+        df_ticker['Volume'] = df_ticker['volume']
+    else:
+        df_ticker['Volume'] = 0 # Dummy volume jika kolom tidak ada
+    # ---------------------------------
+    
     apds = []
-    if 'ma5' in df_ticker and 'ma20' in df_ticker:
-        apds.append(mpf.make_addplot(df_ticker['ma5'], color='green', width=1)) # MA5
-        apds.append(mpf.make_addplot(df_ticker['ma20'], color='red', width=1))   # MA20
+    # Gunakan penulisan kolom yang konsisten (huruf kecil sesuai DB atau kapital sesuai mapping di atas)
+    if 'ma5' in df_ticker.columns and 'ma20' in df_ticker.columns:
+        apds.append(mpf.make_addplot(df_ticker['ma5'], color='green', width=1)) 
+        apds.append(mpf.make_addplot(df_ticker['ma20'], color='red', width=1))
 
-    # 2. Menyiapkan Plot RSI (di panel bawah)
-    if 'rsi' in df_ticker and not df_ticker['rsi'].isnull().all():
-        # Panel=1 artinya diletakkan di bawah grafik utama
-        apds.append(mpf.make_addplot(df_ticker['rsi'], panel=1, color='blue', ylabel='RSI (14)', secondary_y=False))
-        # Tambahkan garis batas 70 dan 30 (opsional, tapi bagus untuk portofolio)
+    if 'rsi' in df_ticker.columns and not df_ticker['rsi'].isnull().all():
+        apds.append(mpf.make_addplot(df_ticker['rsi'], panel=1, color='blue', ylabel='RSI (14)'))
         apds.append(mpf.make_addplot([70]*len(df_ticker), panel=1, color='orange', width=0.7, linestyle='--'))
         apds.append(mpf.make_addplot([30]*len(df_ticker), panel=1, color='orange', width=0.7, linestyle='--'))
 
-    # Nama file gambar temporer
     image_filename = f"{ticker}_chart.png"
     
-    # 3. Menjalankan Plotting dengan mplfinance
     try:
-        # Mengatur style grafik (kita gunakan 'charles' yang cerah)
-        # Type='candle' untuk candlestick, atau type='line' untuk garis harga
         mpf.plot(df_ticker, type='line', 
                  addplot=apds,
                  title=f"\nGrafik Analisis Teknikal: {ticker}",
                  ylabel='Harga (Rp)',
                  style='charles',
-                 savefig=image_filename, # Simpan sebagai file
-                 figsize=(12, 8),      # Ukuran gambar yang optimal
-                 panel_ratios=(2, 1)   # Ratio grafik utama vs RSI (2:1)
+                 savefig=image_filename,
+                 figsize=(12, 8),
+                 panel_ratios=(2, 1)
                 )
         return image_filename
     except Exception as e:
-        print(f"Error saat membuat grafik untuk {ticker}: {e}")
+        print(f"Error plotting {ticker}: {e}")
         return None
 
 def cek_sinyal_dan_visualisasi():
