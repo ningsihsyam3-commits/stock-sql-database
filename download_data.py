@@ -19,6 +19,8 @@ class HargaSaham(Base):
     close_price = Column(Float)
     ma5 = Column(Float)   # Kolom baru
     ma20 = Column(Float)  # Kolom baru
+    # Di dalam class HargaSaham(Base):
+    rsi = Column(Float, nullable=True)
 
 # Membuat tabel atau memperbarui struktur jika belum ada
 Base.metadata.create_all(engine)
