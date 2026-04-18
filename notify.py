@@ -39,30 +39,40 @@ def cek_sinyal_dan_notifikasi():
         pesan_final += "----------------------------\n\n"
         
         for _, row in hari_ini.iterrows():
-            ticker = row['ticker']
-            harga = row['close_price']
-            ma20 = row['ma20']
-            ma5 = row['ma5'] # Kita tambahkan MA5 juga sebagai patokan tambahan
+        ticker = row['ticker']
+        harga = row['close_price']
+        ma5 = row['ma5']
+        ma20 = row['ma20']
+        rsi = row['rsi']
+        
+        # 1. Logika Tren (Harga vs MA20)
+        if harga > ma20:
+            status_ma = "✅ *Bullish* (Di atas MA20)"
+        else:
+            status_ma = "⚠️ *Bearish* (Di bawah MA20)"
             
-            # Logika Sinyal
-            if ma20 and harga > ma20:
-                sinyal = "✅ *Bullish*"
-            elif ma20 and harga < ma20:
-                sinyal = "⚠️ *Bearish*"
-            else:
-                sinyal = "⚪ *Neutral*"
-                
-            pesan_final += f"📈 *{ticker}*\n"
-            pesan_final += f"💰 Harga: Rp{harga:,.0f}\n"
+        # 2. Logika RSI (Kesehatan Tren)
+        if rsi >= 70:
+            status_rsi = f"🔥 *Overbought* ({rsi:.1f})"
+        elif rsi <= 30:
+            status_rsi = f"❄️ *Oversold* ({rsi:.1f})"
+        else:
+            status_rsi = f"⚖️ *Netral* ({rsi:.1f})"
             
-            # Menampilkan angka patokan MA dalam laporan
-            if ma5:
-                pesan_final += f"📍 Patokan MA5: Rp{ma5:,.0f}\n"
-            if ma20:
-                pesan_final += f"📍 Patokan MA20: Rp{ma20:,.0f}\n"
-                
-            pesan_final += f"📊 Status: {sinyal}\n"
-            pesan_final += "----------------------------\n"
+        # Menyusun Pesan dengan Angka Patokan yang Jelas
+        pesan_final += f"📈 *{ticker}*\n"
+        pesan_final += f"💰 Harga Saat Ini: Rp{harga:,.0f}\n"
+        pesan_final += "----------------------------\n"
+        
+        # Menampilkan Angka Patokan sebagai referensi
+        if ma5:
+            pesan_final += f"📍 Patokan MA5  : Rp{ma5:,.0f}\n"
+        if ma20:
+            pesan_final += f"📍 Patokan MA20 : Rp{ma20:,.0f}\n"
+            
+        pesan_final += f"🌡️ Status RSI    : {status_rsi}\n"
+        pesan_final += f"📊 Kondisi Tren  : {status_ma}\n"
+        pesan_final += "----------------------------\n\n"
         
         kirim_telegram(pesan_final)
     except Exception as e:
@@ -70,5 +80,4 @@ def cek_sinyal_dan_notifikasi():
         
 if __name__ == "__main__":
     cek_sinyal_dan_notifikasi()
-
 
