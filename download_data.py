@@ -32,7 +32,7 @@ def download_stock_data():
     print(f"Sedang menarik data terbaru untuk: {tickers}...")
 
     # Ambil data 30 hari terakhir agar perhitungan MA20 akurat
-    data = yf.download(tickers, period="30d", group_by='ticker')
+    data = yf.download(tickers, period="60d", group_by='ticker')
 
     count = 0
     for t in tickers:
