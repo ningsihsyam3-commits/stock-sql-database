@@ -21,24 +21,33 @@ def load_data():
     
     return df
 
+# Ganti bagian filter yang lama dengan ini:
 try:
     df = load_data()
     
-    # Sidebar Filter
+    # Sidebar Filter (Menyesuaikan dengan kolom 'ticker' di database Anda)
     st.sidebar.header("Filter")
-    symbol = st.sidebar.selectbox("Pilih Kode Saham", df['symbol'].unique() if 'symbol' in df.columns else ["No Data"])
     
-    filtered_df = df[df['symbol'] == symbol] if 'symbol' in df.columns else df
+    # Menggunakan 'ticker' karena itu nama kolom di database Anda
+    target_column = 'ticker' if 'ticker' in df.columns else 'symbol'
+    
+    if target_column in df.columns:
+        all_symbols = df[target_column].unique()
+        selected_ticker = st.sidebar.selectbox("Pilih Kode Saham", all_symbols)
+        filtered_df = df[df[target_column] == selected_ticker]
+    else:
+        selected_ticker = "Data"
+        filtered_df = df
 
-    # Tampilkan Data Utama
-    st.subheader(f"Data Saham Terkini: {symbol}")
+    # Tampilkan Judul yang Dinamis
+    st.subheader(f"Data Saham Terkini: {selected_ticker}")
     st.dataframe(filtered_df.tail(10), use_container_width=True)
     
-    # Grafik Garis Sederhana (Menggunakan Pandas native agar tidak butuh library tambahan)
-    if 'close' in filtered_df.columns:
-        st.subheader("Tren Harga Penutupan")
-        st.line_chart(filtered_df.set_index('date')['close'] if 'date' in filtered_df.columns else filtered_df['close'])
+    # Grafik Garis (Menggunakan 'close_price' sesuai tabel Anda)
+    if 'close_price' in filtered_df.columns:
+        st.subheader(f"Tren Harga {selected_ticker}")
+        chart_data = filtered_df.set_index('date')['close_price']
+        st.line_chart(chart_data)
 
 except Exception as e:
-    st.error(f"Sistem menyala, tapi ada kendala pada data: {e}")
-    st.info("Saran: Pastikan bot Telegram Anda sudah pernah mengirim data ke database ini.")
+    st.error(f"Error: {e}")
