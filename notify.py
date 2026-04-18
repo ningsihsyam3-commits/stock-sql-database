@@ -162,4 +162,4 @@ if __name__ == "__main__":
     if not TOKEN or not CHAT_ID:
         print("Error: TELEGRAM_TOKEN atau TELEGRAM_CHAT_ID tidak ditemukan di environment variables.")
     else:
-        cek_sinyal_visualisasi()
+        cek_sinyal_dan_visualisasi()
