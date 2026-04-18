@@ -30,7 +30,7 @@ jobs:
         run: python download_data.py
 
       - name: Run Technical Analysis
-        run: python analys.py
+        run: python analysis.py
 
       - name: Run Visual Notification
         env:
