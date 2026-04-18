@@ -17,6 +17,20 @@ def get_analyzed_data():
     # Hitung perubahan persentase harian
     df['pct_change'] = df.groupby('ticker')['close_price'].pct_change() * 100
     
+def hitung_rsi(series, period=14):
+    delta = series.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
+
+def update_indikator_rsi(df):
+    # Pastikan data diurutkan berdasarkan tanggal lama ke baru untuk perhitungan yang benar
+    df = df.sort_values(['ticker', 'date'])
+    
+    # Hitung RSI 14 hari untuk setiap ticker
+    df['rsi'] = df.groupby('ticker')['close_price'].transform(lambda x: hitung_rsi(x))
+    
     return df
-
-
