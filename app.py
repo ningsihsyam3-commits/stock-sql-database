@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-#import mplfinance as mpf
 
 # Konfigurasi Halaman
 st.set_page_config(page_title="Stock Automation Dashboard", layout="wide")
