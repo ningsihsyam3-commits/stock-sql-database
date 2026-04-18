@@ -1,36 +1,41 @@
 import pandas as pd
+import pandas_ta as ta
 from sqlalchemy import create_engine
 
-engine = create_engine('sqlite:///database_investasi.db')
+def hitung_indikator():
+    engine = create_engine('sqlite:///database_investasi.db')
+    
+    try:
+        # 1. Ambil data mentah dari database
+        df = pd.read_sql("SELECT * FROM history_saham ORDER BY ticker, date ASC", engine)
+        
+        if df.empty:
+            print("Database kosong, tidak ada yang bisa dianalisis.")
+            return
 
-def get_analyzed_data():
-    # Ambil data dari database
-    df = pd.read_sql("SELECT * FROM history_saham ORDER BY ticker, date", engine)
-    
-    if df.empty:
-        return None
+        df_hasil = pd.DataFrame()
 
-    # Hitung Indikator (MA-5 dan MA-20 sesuai rencana kita)
-    df['MA5'] = df.groupby('ticker')['close_price'].transform(lambda x: x.rolling(window=5).mean())
-    df['MA20'] = df.groupby('ticker')['close_price'].transform(lambda x: x.rolling(window=20).mean())
-    
-    # Hitung perubahan persentase harian
-    df['pct_change'] = df.groupby('ticker')['close_price'].pct_change() * 100
-    
-def hitung_rsi(series, period=14):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+        # 2. Hitung indikator per ticker
+        for ticker in df['ticker'].unique():
+            dft = df[df['ticker'] == ticker].copy()
+            
+            # --- Indikator Harga ---
+            dft['ma5'] = ta.sma(dft['close_price'], length=5)
+            dft['ma20'] = ta.sma(dft['close_price'], length=20)
+            dft['rsi'] = ta.rsi(dft['close_price'], length=14)
+            
+            # --- Indikator Volume (Baru!) ---
+            # Menghitung rata-rata volume 10 hari untuk melihat lonjakan
+            dft['vol_ma10'] = ta.sma(dft['volume'], length=10)
+            
+            df_hasil = pd.concat([df_hasil, dft])
 
-def update_indikator_rsi(df):
-    # Pastikan data diurutkan berdasarkan tanggal lama ke baru untuk perhitungan yang benar
-    df = df.sort_values(['ticker', 'date'])
-    
-    # Hitung RSI 14 hari untuk setiap ticker
-    df['rsi'] = df.groupby('ticker')['close_price'].transform(lambda x: hitung_rsi(x))
-    
-    return df
+        # 3. Simpan kembali ke database (replace tabel lama dengan data yang sudah ada indikatornya)
+        df_hasil.to_sql('history_saham', engine, if_exists='replace', index=False)
+        print("Analisis selesai: Indikator Harga & Volume berhasil diperbarui.")
+
+    except Exception as e:
+        print(f"Error saat menjalankan analisis: {e}")
+
+if __name__ == "__main__":
+    hitung_indikator()
