@@ -38,12 +38,12 @@ def cek_sinyal_dan_notifikasi():
         pesan_final = "🔔 *LAPORAN SAHAM HARIAN* 🔔\n"
         pesan_final += "----------------------------\n\n"
         
-    for _, row in hari_ini.iterrows():
-        ticker = row['ticker']
-        harga = row['close_price']
-        ma5 = row['ma5']
-        ma20 = row['ma20']
-        rsi = row['rsi']
+        for _, row in hari_ini.iterrows():
+            ticker = row['ticker']
+            harga = row['close_price']
+            ma5 = row['ma5']
+            ma20 = row['ma20']
+            rsi = row['rsi']
 
         # --- LOGIKA PROTEKSI (Agar tidak error jika data None) ---
         
