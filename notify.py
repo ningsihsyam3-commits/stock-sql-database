@@ -39,11 +39,11 @@ def cek_sinyal_dan_notifikasi():
         pesan_final += "----------------------------\n\n"
         
         for _, row in hari_ini.iterrows():
-        ticker = row['ticker']
-        harga = row['close_price']
-        ma5 = row['ma5']
-        ma20 = row['ma20']
-        rsi = row['rsi']
+            ticker = row['ticker']
+            harga = row['close_price']
+            ma5 = row['ma5']
+            ma20 = row['ma20']
+            rsi = row['rsi']
         
         # 1. Logika Tren (Harga vs MA20)
         if harga > ma20:
