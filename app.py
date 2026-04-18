@@ -6,69 +6,39 @@ import sqlite3
 st.set_page_config(page_title="Stock Automation Dashboard", layout="wide")
 
 st.title("📈 Autonomous Stock Analysis Dashboard")
-st.markdown("""
-Dashboard ini menampilkan hasil analisis otomatis dari bot Python yang berjalan di GitHub Actions.
-Data diperbarui secara mandiri ke database SQLite.
-""")
 
-# Fungsi Loading Data dengan Nama Tabel yang Benar
 def load_data():
     conn = sqlite3.connect('database_investasi.db')
-    # Menggunakan nama tabel: history_saham
     df = pd.read_sql_query("SELECT * FROM history_saham", conn)
     conn.close()
     
-    # Memastikan format tanggal benar
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
+    # Otomatis deteksi kolom tanggal (antisipasi 'Date' vs 'date')
+    df.columns = [c.lower() for c in df.columns]
+    
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date')
+    
     return df
 
 try:
-    df_raw = load_data()
+    df = load_data()
     
-    # Sidebar
-    st.sidebar.header("Control Panel")
-    symbol = st.sidebar.selectbox("Pilih Kode Saham", df_raw['Symbol'].unique())
+    # Sidebar Filter
+    st.sidebar.header("Filter")
+    symbol = st.sidebar.selectbox("Pilih Kode Saham", df['symbol'].unique() if 'symbol' in df.columns else ["No Data"])
     
-    # Filter data berdasarkan simbol
-    df = df_raw[df_raw['Symbol'] == symbol].copy()
+    filtered_df = df[df['symbol'] == symbol] if 'symbol' in df.columns else df
 
-    # Layout Kolom untuk Indikator Utama (Metric)
-    col1, col2, col3 = st.columns(3)
-    last_price = df['Close'].iloc[-1]
-    prev_price = df['Close'].iloc[-2]
-    change = last_price - prev_price
-
-    col1.metric("Harga Terakhir", f"Rp{last_price:,.0f}", f"{change:,.0f}")
+    # Tampilkan Data Utama
+    st.subheader(f"Data Saham Terkini: {symbol}")
+    st.dataframe(filtered_df.tail(10), use_container_width=True)
     
-    # Cek apakah kolom RSI tersedia di database
-    if 'RSI' in df.columns:
-        current_rsi = df['RSI'].iloc[-1]
-        col2.metric("RSI (14)", f"{current_rsi:,.2f}")
-    else:
-        col2.metric("RSI (14)", "N/A")
-        
-    col3.metric("Volume", f"{df['Volume'].iloc[-1]:,.0f}")
-
-    # Visualisasi Chart Teknikal
-    st.subheader(f"Price Action: {symbol}")
-    
-    # Menyiapkan SMA jika kolomnya tersedia
-    add_ons = []
-    if 'SMA_5' in df.columns:
-        add_ons.append(mpf.make_addplot(df['SMA_5'], color='orange'))
-    if 'SMA_20' in df.columns:
-        add_ons.append(mpf.make_addplot(df['SMA_20'], color='blue'))
-
-    # Plot menggunakan mplfinance
-    fig, ax = mpf.plot(df.tail(60), type='candle', style='charles',
-                       addplot=add_ons, volume=True, 
-                       returnfig=True, figsize=(12, 7))
-    st.pyplot(fig)
-
-    # Tabel Data (Expander agar rapi)
-    with st.expander("Lihat Data Histori Lengkap"):
-        st.dataframe(df.sort_index(ascending=False))
+    # Grafik Garis Sederhana (Menggunakan Pandas native agar tidak butuh library tambahan)
+    if 'close' in filtered_df.columns:
+        st.subheader("Tren Harga Penutupan")
+        st.line_chart(filtered_df.set_index('date')['close'] if 'date' in filtered_df.columns else filtered_df['close'])
 
 except Exception as e:
-    st.error(f"Gagal memuat data. Error: {e}")
+    st.error(f"Sistem menyala, tapi ada kendala pada data: {e}")
+    st.info("Saran: Pastikan bot Telegram Anda sudah pernah mengirim data ke database ini.")
