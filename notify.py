@@ -4,7 +4,7 @@ import requests
 from sqlalchemy import create_engine
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-import io
+from datetime import datetime
 
 # --- KONFIGURASI TELEGRAM ---
 TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -27,39 +27,29 @@ def kirim_gambar_telegram(chat_id, image_path, caption):
             if r.status_code != 200:
                 print(f"Gagal kirim gambar: {r.text}")
             else:
-                print("Laporan visual berhasil dikirim ke Telegram!")
+                print(f"Laporan visual berhasil dikirim ke Telegram!")
     except Exception as e:
         print(f"Error saat mengirim gambar: {e}")
 
 def buat_grafik(df_ticker, ticker):
-    """Fungsi untuk menggambar Candlestick, MA, dan RSI"""
-    # Pastikan index adalah Datetime
+    """Fungsi untuk menggambar Candlestick, MA5, MA20, dan RSI"""
     df_ticker = df_ticker.copy()
-    df_ticker['date'] = pd.to_datetime(df_ticker['date'])
-    df_ticker = df_ticker.set_index('date')
     
-    # --- PERBAIKAN KRUSIAL DI SINI ---
-    # mplfinance WAJIB menggunakan huruf kapital di depan: Open, High, Low, Close, Volume
-    df_ticker['Open']  = df_ticker['close_price']
-    df_ticker['High']  = df_ticker['close_price']
-    df_ticker['Low']   = df_ticker['close_price']
-    df_ticker['Close'] = df_ticker['close_price'] # Tambahkan ini!
-    
-    # Tambahkan Volume jika ada di database Anda
-    if 'volume' in df_ticker.columns:
-        df_ticker['Volume'] = df_ticker['volume']
-    else:
-        df_ticker['Volume'] = 0 # Dummy volume jika kolom tidak ada
-    # ---------------------------------
+    # Mapping kolom untuk mplfinance
+    df_ticker['Open']  = df_ticker['Close']
+    df_ticker['High']  = df_ticker['Close']
+    df_ticker['Low']   = df_ticker['Close']
+    df_ticker['Volume'] = df_ticker['Volume'] if 'Volume' in df_ticker.columns else 0
     
     apds = []
-    # Gunakan penulisan kolom yang konsisten (huruf kecil sesuai DB atau kapital sesuai mapping di atas)
-    if 'ma5' in df_ticker.columns and 'ma20' in df_ticker.columns:
-        apds.append(mpf.make_addplot(df_ticker['ma5'], color='green', width=1)) 
-        apds.append(mpf.make_addplot(df_ticker['ma20'], color='red', width=1))
+    # Plot MA5 dan MA20
+    if 'MA5' in df_ticker.columns and 'MA20' in df_ticker.columns:
+        apds.append(mpf.make_addplot(df_ticker['MA5'], color='green', width=1)) 
+        apds.append(mpf.make_addplot(df_ticker['MA20'], color='red', width=1))
 
-    if 'rsi' in df_ticker.columns and not df_ticker['rsi'].isnull().all():
-        apds.append(mpf.make_addplot(df_ticker['rsi'], panel=1, color='blue', ylabel='RSI (14)'))
+    # Plot RSI di Panel bawah
+    if 'RSI' in df_ticker.columns and not df_ticker['RSI'].isnull().all():
+        apds.append(mpf.make_addplot(df_ticker['RSI'], panel=1, color='blue', ylabel='RSI'))
         apds.append(mpf.make_addplot([70]*len(df_ticker), panel=1, color='orange', width=0.7, linestyle='--'))
         apds.append(mpf.make_addplot([30]*len(df_ticker), panel=1, color='orange', width=0.7, linestyle='--'))
 
@@ -68,8 +58,8 @@ def buat_grafik(df_ticker, ticker):
     try:
         mpf.plot(df_ticker, type='line', 
                  addplot=apds,
-                 title=f"\nGrafik Analisis Teknikal: {ticker}",
-                 ylabel='Harga (Rp)',
+                 title=f"\nAnalisis Teknikal & Anomali: {ticker}",
+                 ylabel='Harga',
                  style='charles',
                  savefig=image_filename,
                  figsize=(12, 8),
@@ -81,82 +71,72 @@ def buat_grafik(df_ticker, ticker):
         return None
 
 def cek_sinyal_dan_visualisasi():
-    """Fungsi utama untuk membaca DB, membuat grafik, dan mengirim laporan"""
     engine = create_engine('sqlite:///database_investasi.db')
+    assets = ['BBRI_JK', 'CTRA_JK', 'TLKM_JK', 'ASII_JK', 'BTC_USD']
+    
+    # Header Pesan
+    url_text = f"https://api.telegram.org/bot{TOKEN.replace('bot', '')}/sendMessage"
+    requests.post(url_text, json={"chat_id": CHAT_ID, "text": "🔔 *LAPORAN SPECIALIST SMART BOT* 🔔\n---", "parse_mode": "Markdown"})
+
     try:
-        # 1. Ambil seluruh data historis untuk plotting
-        df_full = pd.read_sql("SELECT * FROM history_saham ORDER BY ticker, date ASC", engine)
-        if df_full.empty:
-            print("Database kosong.")
-            return
+        for ticker in assets:
+            # Load data dari tabel masing-masing
+            df = pd.read_sql(f"SELECT * FROM {ticker} ORDER BY Date ASC", engine, index_col='Date', parse_dates=True)
+            if df.empty: continue
             
-        tickers = df_full['ticker'].unique()
-        
-        # Header Laporan (Pesan Teks pembuka)
-        header_pesan = "🔔 *LAPORAN VISUAL SMART BOT* 🔔\n"
-        header_pesan += "--------------------------------\n\n"
-        
-        # Kita kirim teks header terlebih dahulu agar tidak error jika grafik gagal
-        url_text = f"https://api.telegram.org/bot{TOKEN.replace('bot', '')}/sendMessage"
-        requests.post(url_text, json={"chat_id": CHAT_ID, "text": header_pesan, "parse_mode": "Markdown"})
-        
-        for ticker in tickers:
-            # Data historis untuk plotting (misal ambil 40 hari terakhir)
-            dft_full = df_full[df_full['ticker'] == ticker].tail(40)
+            dft_plot = df.tail(40) # Ambil 40 data terakhir untuk grafik
+            curr = df.iloc[-1]    # Data hari ini
+            prev = df.iloc[-2]    # Data kemarin
             
-            # Data terbaru untuk sinyal teks
-            data_ticker = dft_full.tail(2) 
-            if len(data_ticker) < 2: continue
-            curr = data_ticker.iloc[1] # Hari Ini
-            prev = data_ticker.iloc[0] # Kemarin
-            
-            # --- LOGIKA SINYAL (Sama seperti sebelumnya) ---
-            # 1. Perubahan Harga
-            perubahan = ((curr['close_price'] - prev['close_price']) / prev['close_price']) * 100
+            # 1. Logika Perubahan Harga
+            perubahan = ((curr['Close'] - prev['Close']) / prev['Close']) * 100
             tanda = "↗️ +" if perubahan > 0 else "↘️ "
             
-            # 2. Golden Cross Logic
-            ma5_c, ma20_c = curr.get('ma5'), curr.get('ma20')
-            ma5_p, ma20_p = prev.get('ma5'), prev.get('ma20')
-            sinyal = "🔍 *Analisis Tren...*"
-            if all(v is not None and not pd.isna(v) for v in [ma5_c, ma20_c, ma5_p, ma20_p]):
-                if ma5_p <= ma20_p and ma5_c > ma20_c: sinyal = "🚀 *GOLDEN CROSS (STRONG BUY)*"
-                elif ma5_p >= ma20_p and ma5_c < ma20_c: sinyal = "💀 *DEATH CROSS (STRONG SELL)*"
-                elif ma5_c > ma20_c: sinyal = "✅ *Bullish Trend*"
-                else: sinyal = "⚠️ *Bearish Trend*"
+            # 2. Logika Sinyal Golden Cross (MA5/MA20)
+            sinyal = "🔍 *Stabil*"
+            if prev['MA5'] <= prev['MA20'] and curr['MA5'] > curr['MA20']: sinyal = "🚀 *GOLDEN CROSS (BUY)*"
+            elif prev['MA5'] >= prev['MA20'] and curr['MA5'] < curr['MA20']: sinyal = "💀 *DEATH CROSS (SELL)*"
+            elif curr['MA5'] > curr['MA20']: sinyal = "✅ *Bullish Trend*"
+            else: sinyal = "⚠️ *Bearish Trend*"
 
-            # 3. Volume Logic (Membandingkan vol_ma10)
-            vol_status = "Normal"
-            if curr.get('vol_ma10') and curr['volume'] > (curr['vol_ma10'] * 1.5):
-                vol_status = "🔥 *High Accumulation*"
+            # 3. Logika Anomali (Z-Score)
+            status_anomali = "✅ Normal"
+            if curr['Is_Anomaly'] == 1:
+                status_anomali = f"🚨 *ANOMALI DETECTED* (Z-Score: {curr['Z_Score']:.2f})"
 
-            # MENYUSUN CAPTION (Teks di bawah gambar)
-            caption_visual = f"📊 *Analisis: {ticker}*\n"
-            caption_visual += "--------------------------------\n"
-            caption_visual += f"💰 Price: Rp{curr['close_price']:,.0f} ({tanda}{perubahan:.2f}%)\n"
-            caption_visual += f"📡 Signal: {sinyal}\n"
-            caption_visual += f"🔊 Volume: {vol_status}\n"
-            caption_visual += "--------------------------------\n\n"
+            # 4. Performa Strategi (Backtesting)
+            strategy_perf = (curr['Cumulative_Strategy'] - 1) * 100
+
+            # MENYUSUN CAPTION
+            caption = f"📊 *Aset: {ticker.replace('_', '.')}*\n"
+            caption += f"💰 Price: {curr['Close']:,.0f} ({tanda}{perubahan:.2f}%)\n"
+            caption += f"📡 Signal: {sinyal}\n"
+            caption += f"🛡️ Status: {status_anomali}\n"
+            caption += f"📈 Strategy Return: *{strategy_perf:.2f}%*\n"
+            caption += "--------------------------------\n"
             
-            # --- PROSES VISUALISASI ---
-            print(f"Sedang membuat grafik untuk {ticker}...")
-            image_path = buat_grafik(dft_full, ticker)
-            
-            # Jika grafik berhasil dibuat, kirim ke Telegram
+            # PROSES VISUALISASI
+            image_path = buat_grafik(dft_plot, ticker)
             if image_path and os.path.exists(image_path):
-                kirim_gambar_telegram(CHAT_ID, image_path, caption_visual)
-                # Hapus file gambar setelah dikirim agar tidak memenuhi penyimpanan
-                os.remove(image_path) 
+                kirim_gambar_telegram(CHAT_ID, image_path, caption)
+                os.remove(image_path)
             else:
-                # Jika grafik gagal, kirim teks saja sebagai cadangan
-                requests.post(url_text, json={"chat_id": CHAT_ID, "text": f"Gagal membuat grafik {ticker}.\n{caption_visual}", "parse_mode": "Markdown"})
+                requests.post(url_text, json={"chat_id": CHAT_ID, "text": caption, "parse_mode": "Markdown"})
+
+        # 5. Tambahan: Informasi Korelasi
+        try:
+            corr_df = pd.read_sql("SELECT * FROM market_correlation", engine)
+            if not corr_df.empty:
+                corr_msg = f"🔗 *Market Correlation*\nBTC vs BBRI: `{corr_df['Value'].iloc[0]:.2f}`"
+                requests.post(url_text, json={"chat_id": CHAT_ID, "text": corr_msg, "parse_mode": "Markdown"})
+        except:
+            pass
 
     except Exception as e:
-        print(f"Error Pipeline Visual: {e}")
+        print(f"Error Pipeline: {e}")
 
 if __name__ == "__main__":
-    # Pastikan TOKEN dan CHAT_ID tersedia
-    if not TOKEN or not CHAT_ID:
-        print("Error: TELEGRAM_TOKEN atau TELEGRAM_CHAT_ID tidak ditemukan di environment variables.")
-    else:
+    if TOKEN and CHAT_ID:
         cek_sinyal_dan_visualisasi()
+    else:
+        print("Error: Missing Telegram Config.")
