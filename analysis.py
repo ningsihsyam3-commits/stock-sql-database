@@ -6,14 +6,23 @@ from datetime import datetime
 
 engine = create_engine('sqlite:///data_investasi.db')
 
-def run_specialist_analysis(assets):
-    all_dfs = {}
-    with engine.connect() as conn:
-        for symbol in assets:
-            table_name = symbol.replace('.', '_').replace('-', '_')
-            # Ambil seluruh data historis untuk analisis yang akurat
+with engine.connect() as conn:
             df = pd.read_sql(table_name, conn, index_col='Date', parse_dates=True)
+        
+        # --- PERBAIKAN KRUSIAL: Memastikan kolom 'Close' ditemukan ---
+        # Jika yfinance memberikan MultiIndex (misal: ('Close', 'BBRI.JK'))
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        
+        # Jika kolom bernama 'Adj Close', kita gunakan sebagai 'Close'
+        if 'Close' not in df.columns and 'Adj Close' in df.columns:
+            df['Close'] = df['Adj Close']
             
+        # Pastikan kolom Close sekarang ada
+        if 'Close' not in df.columns:
+            print(f"Warning: Kolom Close tidak ditemukan untuk {symbol}. Kolom yang ada: {df.columns}")
+            continue
+                    
             # --- ANALISIS TEKNIS (MA5 & MA20) ---
             df['MA5'] = ta.sma(df['Close'], length=5)
             df['MA20'] = ta.sma(df['Close'], length=20)
