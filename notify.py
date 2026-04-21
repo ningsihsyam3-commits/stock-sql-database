@@ -72,7 +72,7 @@ def buat_grafik(df_ticker, ticker):
 
 def cek_sinyal_dan_visualisasi():
     engine = create_engine('sqlite:///database_investasi.db')
-    assets = ['BBRI_JK', 'CTRA_JK', 'TLKM_JK', 'ASII_JK', 'BTC_USD']
+    assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
     
     # Header Pesan
     url_text = f"https://api.telegram.org/bot{TOKEN.replace('bot', '')}/sendMessage"
