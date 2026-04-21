@@ -11,65 +11,47 @@ engine = create_engine('sqlite:///database_investasi.db')
 
 def run_specialist_analysis(assets):
     all_dfs = {}
-    # --- TAMBAHKAN DEBUGGING INI ---
-    inspector = inspect(engine)
-    available_tables = inspector.get_table_names()
-    print(f"DEBUG: Tabel yang ditemukan di database: {available_tables}")
-    # -------------------------------
+    
+    try:
+        # Mengambil SEMUA data dari tabel history_saham
+        full_df = pd.read_sql('SELECT * FROM history_saham', engine, index_col='Date', parse_dates=True)
+        print("✅ Berhasil memuat tabel history_saham")
+    except Exception as e:
+        print(f"❌ Gagal memuat tabel history_saham: {e}")
+        return
 
     for symbol in assets:
-        # Menyesuaikan nama tabel agar sama dengan hasil download_data.py
-        table_name = symbol.replace('.', '_').replace('-', '_')
-
-        # Cek apakah tabel ada di daftar tabel database
-        if table_name not in available_tables:
-            print(f"⚠️ Skip {symbol}: Tabel {table_name} tidak ditemukan dalam database!")
-            continue
-        
         try:
-            # 1. Ambil data dari database menggunakan Query yang aman
-            # Menggunakan tanda kutip ganda agar SQLite tidak bingung dengan nama tabel
-            query = f'SELECT * FROM "{table_name}"'
-            df = pd.read_sql(query, engine, index_col='Date', parse_dates=True)
+            # Filter data berdasarkan symbol (misal: BBRI.JK)
+            df = full_df[full_df['Symbol'] == symbol].copy()
             
             if df.empty:
-                print(f"⚠️ Data {symbol} kosong di tabel {table_name}, skip...")
-                continue 
-           
-            # 2. Perbaikan Kolom (Proteksi MultiIndex yfinance)
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-            
-            if 'Close' not in df.columns and 'Adj Close' in df.columns:
-                df['Close'] = df['Adj Close']
-                
-            if 'Close' not in df.columns:
-                print(f"❌ Warning: Kolom Close tidak ditemukan untuk {symbol}")
+                print(f"⚠️ Data untuk {symbol} tidak ditemukan di history_saham")
                 continue
-
-            # 3. Analisis Teknis (MA5 & MA20)
+            
+            # --- ANALISIS TEKNIKAL ---
             df['MA5'] = ta.sma(df['Close'], length=5)
             df['MA20'] = ta.sma(df['Close'], length=20)
             df['RSI'] = ta.rsi(df['Close'], length=14)
             
-            # 4. Deteksi Anomali (Z-Score)
+            # Z-Score Anomali
             df['STD20'] = df['Close'].rolling(window=20).std()
             df['Z_Score'] = (df['Close'] - df['MA20']) / df['STD20']
             df['Is_Anomaly'] = df['Z_Score'].apply(lambda x: 1 if abs(x) > 2 else 0)
 
-            # 5. Backtesting (Strategy Return)
+            # Backtesting
             df['Signal'] = np.where(df['MA5'] > df['MA20'], 1, 0)
             df['Daily_Return'] = df['Close'].pct_change()
             df['Strategy_Return'] = df['Signal'].shift(1) * df['Daily_Return']
             df['Cumulative_Strategy'] = (1 + df['Strategy_Return'].fillna(0)).cumprod()
 
-            # 6. Simpan kembali ke database
+            # Simpan kembali ke database sebagai tabel TERPISAH (agar app.py mudah membaca)
+            table_name = symbol.replace('.', '_').replace('-', '_')
             df.to_sql(table_name, engine, if_exists='replace', index=True)
-            all_dfs[symbol] = df
-            print(f"✅ Analisis untuk {symbol} berhasil disimpan ke tabel {table_name}.")
-
+            print(f"✅ Berhasil memproses dan menyimpan tabel: {table_name}")
+            
         except Exception as e:
-            print(f"❌ Error pada {symbol}: {e}")
+            print(f"❌ Error pada analisis {symbol}: {e}")
 
     # 7. Analisis Korelasi (Setelah semua loop selesai)
     if 'BTC-USD' in all_dfs and 'BBRI.JK' in all_dfs:
