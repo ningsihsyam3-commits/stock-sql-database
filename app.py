@@ -19,16 +19,26 @@ st.markdown("---")
 
 # 3. Sidebar untuk Pemilihan Aset
 st.sidebar.header("Navigation")
-assets = ['BBRI_JK', 'CTRA_JK', 'TLKM_JK', 'ASII_JK', 'BTC_USD']
+assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
 selected_asset = st.sidebar.selectbox("Pilih Aset", assets)
 
 # 4. Fungsi Load Data
 @st.cache_data
-def load_data(table_name):
-    query = f"SELECT * FROM {table_name}"
-    df = pd.read_sql(query, engine, index_col='Date', parse_dates=True)
+def load_data(ticker):
+    # Mengubah ASII.JK menjadi ASII_JK agar sesuai nama tabel di database
+    table_name = ticker.replace('.', '_').replace('-', '_')
+    
+    # Gunakan tanda kutip ganda " " untuk menjaga nama tabel tetap aman
+    query = f'SELECT * FROM "{table_name}"'
+    
+    df = pd.read_sql(query, engine)
+    
+    if not df.empty:
+        # Memastikan kolom Date terbaca sebagai tanggal, bukan teks
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.set_index('Date', inplace=True)
+        df = df.sort_index()
     return df
-
 try:
     df = load_data(selected_asset)
     
@@ -105,4 +115,12 @@ except Exception as e:
 
 # 8. Footer
 st.sidebar.markdown("---")
-st.sidebar.write(f"Last updated: {df.index[-1].strftime('%Y-%m-%d') if 'df' in locals() else 'Unknown'}")
+# Menambahkan pengecekan apakah df benar-benar ada isinya
+if 'df' in locals() and df is not None and not df.empty:
+    try:
+        last_date = df.index[-1].strftime('%d %B %Y')
+        st.sidebar.write(f"📅 Last updated: {last_date}")
+    except:
+        st.sidebar.write("📅 Last updated: N/A")
+else:
+    st.sidebar.write("📅 Data tidak tersedia")
