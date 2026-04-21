@@ -14,7 +14,7 @@ engine = create_engine('sqlite:///database_investasi.db')
 # 2. Konfigurasi Halaman
 st.set_page_config(page_title="Investment Specialist Dashboard", layout="wide")
 
-st.title("💹 Financial Intelligence Specialist Dashboard")
+st.title("💹 Strategic Asset Engine")
 st.markdown("---")
 
 # 3. Sidebar untuk Pemilihan Aset
