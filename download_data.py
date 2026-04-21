@@ -1,27 +1,29 @@
-import yfinance as yf
 import pandas as pd
+import yfinance as yf
 from sqlalchemy import create_engine
 
-def download_stock_data():
-    tickers = ["BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK"]
-    engine = create_engine('sqlite:///database_investasi.db')
-    
-    # Ambil 3 bulan agar indikator di analys.py akurat
-    data = yf.download(tickers, period="3mo", group_by='ticker')
-    
-    df_list = []
-    for t in tickers:
-        if t in data:
-            df_ticker = data[t].copy().reset_index()
-            df_ticker['ticker'] = t
-            # Normalisasi nama kolom (Close -> close_price, Volume -> volume)
-            df_ticker = df_ticker.rename(columns={'Date': 'date', 'Close': 'close_price', 'Volume': 'volume'})
-            df_list.append(df_ticker[['date', 'ticker', 'close_price', 'volume']])
+# Konfigurasi database
+engine = create_engine('sqlite:///data_investasi.db')
 
-    df_final = pd.concat(df_list)
-    # Gunakan 'replace' untuk data mentah, nanti analys.py yang akan menghitung ulang indikatornya
-    df_final.to_sql('history_saham', engine, if_exists='replace', index=False)
-    print("Data mentah (Harga & Volume) berhasil diperbarui.")
+def download_incremental(assets):
+    for symbol in assets:
+        table_name = symbol.replace('.', '_').replace('-', '_')
+        
+        # 1. Cek Tanggal Terakhir menggunakan SQLAlchemy engine
+        try:
+            with engine.connect() as conn:
+                last_date = pd.read_sql(f"SELECT MAX(Date) FROM {table_name}", conn).iloc[0, 0]
+        except Exception:
+            last_date = None
 
-if __name__ == "__main__":
-    download_stock_data()
+        # 2. Download Data
+        start_date = (pd.to_datetime(last_date) + pd.Timedelta(days=1)) if last_date else None
+        df_new = yf.download(symbol, start=start_date, period="1y" if not last_date else None)
+        
+        if not df_new.empty:
+            # 3. Simpan dengan mode APPEND
+            df_new.to_sql(table_name, engine, if_exists='append', index=True)
+            print(f"Data mentah {symbol} berhasil ditambahkan ke database.")
+
+assets = ['BBRI.JK', 'CTRA.JK', 'TLKM.JK', 'ASII.JK', 'BTC-USD']
+download_incremental(assets)
