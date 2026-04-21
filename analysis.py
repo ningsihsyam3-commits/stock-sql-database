@@ -70,6 +70,24 @@ def run_specialist_analysis(assets):
         except Exception as e:
             print(f"❌ Error pada {symbol}: {e}")
 
+    # --- Tambahkan di bagian akhir analysis.py ---
+
+# Menghitung korelasi sederhana antara dua aset (contoh: BBRI dan BBNI)
+# Anda bisa menggantinya dengan aset lain yang tersedia di database Anda
+    try:
+        df_bbri = pd.read_sql('SELECT Close FROM BBRI_JK', engine)
+        df_bbni = pd.read_sql('SELECT Close FROM BBNI_JK', engine)
+    
+    # Pastikan jumlah baris sama sebelum menghitung korelasi
+        correlation_value = df_bbri['Close'].corr(df_bbni['Close'])
+    
+    # Simpan ke tabel baru bernama market_correlation
+        corr_df = pd.DataFrame({'Pair': ['BBRI vs BBNI'], 'Value': [correlation_value]})
+        corr_df.to_sql('market_correlation', engine, if_exists='replace', index=False)
+        print("✅ Tabel market_correlation berhasil dibuat.")
+    except Exception as e:
+        print(f"❌ Gagal membuat korelasi: {e}")
+
 if __name__ == "__main__":
     # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
     assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
