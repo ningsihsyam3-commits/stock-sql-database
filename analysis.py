@@ -31,11 +31,16 @@ def run_specialist_analysis(assets):
 
     for symbol in assets:
         try:
-            # 3. Filter berdasarkan ticker (Symbol)
-            df = full_df[full_df['Symbol'] == symbol].copy()
+            # Pencarian lebih fleksibel (tidak peduli huruf besar/kecil)
+            df = full_df[full_df['Symbol'].str.upper() == symbol.upper()].copy()
             
+            # Jika masih kosong, coba cari tanpa akhiran .JK atau -USD
             if df.empty:
-                print(f"⚠️ Data {symbol} tidak ditemukan di kolom ticker.")
+                base_symbol = symbol.split('.')[0].split('-')[0]
+                df = full_df[full_df['Symbol'].str.contains(base_symbol, case=False, na=False)].copy()
+
+            if df.empty:
+                print(f"⚠️ Data untuk {symbol} benar-benar tidak ditemukan di database.")
                 continue
 
             # 4. Hitung Indikator (Menggunakan nama kapital agar seragam di Dashboard)
