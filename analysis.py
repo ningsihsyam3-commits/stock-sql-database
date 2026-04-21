@@ -71,5 +71,6 @@ def run_specialist_analysis(assets):
             print(f"❌ Error pada {symbol}: {e}")
 
 if __name__ == "__main__":
-    assets = ['BBRI.JK', 'CTRA.JK', 'TLKM.JK', 'ASII.JK', 'BTC-USD']
+    # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
+    assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
     run_specialist_analysis(assets)
