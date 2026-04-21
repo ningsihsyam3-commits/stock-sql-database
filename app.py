@@ -1,53 +1,104 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
+from sqlalchemy import create_engine
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
-# Konfigurasi Halaman
-st.set_page_config(page_title="Stock Automation Dashboard", layout="wide")
+# 1. Konfigurasi Database (Gunakan nama database yang konsisten)
+engine = create_engine('sqlite:///database_investasi.db')
 
-st.title("📈 Autonomous Stock Analysis Dashboard")
+# 2. Konfigurasi Halaman
+st.set_page_config(page_title="Investment Specialist Dashboard", layout="wide")
 
-def load_data():
-    conn = sqlite3.connect('database_investasi.db')
-    df = pd.read_sql_query("SELECT * FROM history_saham", conn)
-    conn.close()
-    
-    # Otomatis deteksi kolom tanggal (antisipasi 'Date' vs 'date')
-    df.columns = [c.lower() for c in df.columns]
-    
-    if 'date' in df.columns:
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values('date')
-    
+st.title("💹 Financial Intelligence Specialist Dashboard")
+st.markdown("---")
+
+# 3. Sidebar untuk Pemilihan Aset
+st.sidebar.header("Navigation")
+assets = ['BBRI_JK', 'CTRA_JK', 'TLKM_JK', 'ASII_JK', 'BTC_USD']
+selected_asset = st.sidebar.selectbox("Pilih Aset", assets)
+
+# 4. Fungsi Load Data
+@st.cache_data
+def load_data(table_name):
+    query = f"SELECT * FROM {table_name}"
+    df = pd.read_sql(query, engine, index_col='Date', parse_dates=True)
     return df
 
-# Ganti bagian filter yang lama dengan ini:
 try:
-    df = load_data()
+    df = load_data(selected_asset)
     
-    # Sidebar Filter (Menyesuaikan dengan kolom 'ticker' di database Anda)
-    st.sidebar.header("Filter")
+    # 5. Row 1: Metrics (Health Cards)
+    last_row = df.iloc[-1]
+    prev_row = df.iloc[-2]
     
-    # Menggunakan 'ticker' karena itu nama kolom di database Anda
-    target_column = 'ticker' if 'ticker' in df.columns else 'symbol'
+    col1, col2, col3, col4 = st.columns(4)
     
-    if target_column in df.columns:
-        all_symbols = df[target_column].unique()
-        selected_ticker = st.sidebar.selectbox("Pilih Kode Saham", all_symbols)
-        filtered_df = df[df[target_column] == selected_ticker]
-    else:
-        selected_ticker = "Data"
-        filtered_df = df
+    with col1:
+        price_diff = last_row['Close'] - prev_row['Close']
+        st.metric("Last Price", f"Rp {last_row['Close']:,.0f}", f"{price_diff:,.0f}")
+        
+    with col2:
+        status = "🚨 ANOMALY" if last_row['Is_Anomaly'] == 1 else "✅ NORMAL"
+        st.metric("Market Status", status, f"Z-Score: {last_row['Z_Score']:.2f}", delta_color="inverse" if status == "🚨 ANOMALY" else "normal")
+        
+    with col3:
+        rsi_val = last_row['RSI']
+        st.metric("RSI (14)", f"{rsi_val:.2f}", "Overbought" if rsi_val > 70 else "Oversold" if rsi_val < 30 else "Neutral")
+        
+    with col4:
+        perf = (last_row['Cumulative_Strategy'] - 1) * 100
+        st.metric("Strategy Return", f"{perf:.2f}%")
 
-    # Tampilkan Judul yang Dinamis
-    st.subheader(f"Data Saham Terkini: {selected_ticker}")
-    st.dataframe(filtered_df.tail(10), use_container_width=True)
+    st.markdown("### 📈 Visual Analysis")
+
+    # 6. Row 2: Main Chart (Price, MA, & Anomalies)
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                       vertical_spacing=0.1, subplot_titles=(f'Price Action & Anomalies: {selected_asset}', 'Relative Strength Index (RSI)'),
+                       row_heights=[0.7, 0.3])
+
+    # Candlestick / Line Chart
+    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name="Close Price", line=dict(color='royalblue', width=2)), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA5'], name="MA 5 (Fast)", line=dict(color='green', width=1, dash='dot')), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], name="MA 20 (Slow)", line=dict(color='red', width=1)), row=1, col=1)
+
+    # Menandai Anomali dengan Marker "X" Merah
+    anomalies = df[df['Is_Anomaly'] == 1]
+    fig.add_trace(go.Scatter(x=anomalies.index, y=anomalies['Close'], mode='markers', 
+                             marker=dict(color='orange', size=10, symbol='x'),
+                             name="Anomaly Alert"), row=1, col=1)
+
+    # RSI Chart
+    fig.add_trace(go.Scatter(x=df.index, y=df['RSI'], name="RSI", line=dict(color='purple')), row=2, col=1)
+    fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
+    fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
+
+    fig.update_layout(height=700, template="plotly_dark", showlegend=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 7. Row 3: Backtesting & Correlation
+    st.markdown("---")
+    left_col, right_col = st.columns(2)
     
-    # Grafik Garis (Menggunakan 'close_price' sesuai tabel Anda)
-    if 'close_price' in filtered_df.columns:
-        st.subheader(f"Tren Harga {selected_ticker}")
-        chart_data = filtered_df.set_index('date')['close_price']
-        st.line_chart(chart_data)
+    with left_col:
+        st.subheader("📊 Backtesting Performance")
+        st.line_chart(df['Cumulative_Strategy'])
+        st.caption("Strategy: MA5 & MA20 Golden Cross / Death Cross crossover.")
+
+    with right_col:
+        st.subheader("🔗 Market Correlation")
+        try:
+            corr_df = pd.read_sql("SELECT * FROM market_correlation", engine)
+            st.write(f"Korelasi saat ini antara **BTC** dan **BBRI**:")
+            st.title(f"{corr_df['Value'].iloc[0]:.2f}")
+            st.info("Korelasi di atas 0.7 menunjukkan hubungan searah yang kuat.")
+        except:
+            st.write("Data korelasi belum tersedia. Jalankan analysis.py terlebih dahulu.")
 
 except Exception as e:
-    st.error(f"Error: {e}")
+    st.error(f"Gagal memuat data aset '{selected_asset}'. Pastikan database sudah terupdate.")
+    st.info("Tips: Jalankan 'python analysis.py' untuk membuat tabel hasil analisis.")
+
+# 8. Footer
+st.sidebar.markdown("---")
+st.sidebar.write(f"Last updated: {df.index[-1].strftime('%Y-%m-%d') if 'df' in locals() else 'Unknown'}")
