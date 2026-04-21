@@ -10,15 +10,17 @@ engine = create_engine('sqlite:///database_investasi.db')
 def run_specialist_analysis(assets):
     all_dfs = {}
     for symbol in assets:
+        # Menyesuaikan nama tabel agar sama dengan hasil download_data.py
         table_name = symbol.replace('.', '_').replace('-', '_')
         
         try:
-            # 1. Ambil data dari database
+            # 1. Ambil data dari database menggunakan Query yang aman
+            # Menggunakan tanda kutip ganda agar SQLite tidak bingung dengan nama tabel
             query = f'SELECT * FROM "{table_name}"'
-            df = pd.read_sql_table(table_name, engine, index_col='Date', parse_dates=True)
+            df = pd.read_sql(query, engine, index_col='Date', parse_dates=True)
             
             if df.empty:
-                print(f"Data {symbol} kosong, skip...")
+                print(f"⚠️ Data {symbol} kosong di tabel {table_name}, skip...")
                 continue 
            
             # 2. Perbaikan Kolom (Proteksi MultiIndex yfinance)
@@ -29,7 +31,7 @@ def run_specialist_analysis(assets):
                 df['Close'] = df['Adj Close']
                 
             if 'Close' not in df.columns:
-                print(f"Warning: Kolom Close tidak ditemukan untuk {symbol}")
+                print(f"❌ Warning: Kolom Close tidak ditemukan untuk {symbol}")
                 continue
 
             # 3. Analisis Teknis (MA5 & MA20)
@@ -51,7 +53,7 @@ def run_specialist_analysis(assets):
             # 6. Simpan kembali ke database
             df.to_sql(table_name, engine, if_exists='replace', index=True)
             all_dfs[symbol] = df
-            print(f"✅ Analisis untuk {symbol} berhasil.")
+            print(f"✅ Analisis untuk {symbol} berhasil disimpan ke tabel {table_name}.")
 
         except Exception as e:
             print(f"❌ Error pada {symbol}: {e}")
