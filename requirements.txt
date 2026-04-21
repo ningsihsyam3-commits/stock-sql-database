@@ -1,2 +1,6 @@
-streamlit
 pandas
+yfinance
+sqlalchemy
+pandas_ta
+plotly
+requests
