@@ -1,41 +1,46 @@
 import pandas as pd
 import pandas_ta as ta
+import numpy as np
 from sqlalchemy import create_engine
+from datetime import datetime
 
-def hitung_indikator():
-    engine = create_engine('sqlite:///database_investasi.db')
-    
-    try:
-        # 1. Ambil data mentah dari database
-        df = pd.read_sql("SELECT * FROM history_saham ORDER BY ticker, date ASC", engine)
-        
-        if df.empty:
-            print("Database kosong, tidak ada yang bisa dianalisis.")
-            return
+engine = create_engine('sqlite:///data_investasi.db')
 
-        df_hasil = pd.DataFrame()
-
-        # 2. Hitung indikator per ticker
-        for ticker in df['ticker'].unique():
-            dft = df[df['ticker'] == ticker].copy()
+def run_specialist_analysis(assets):
+    all_dfs = {}
+    with engine.connect() as conn:
+        for symbol in assets:
+            table_name = symbol.replace('.', '_').replace('-', '_')
+            # Ambil seluruh data historis untuk analisis yang akurat
+            df = pd.read_sql(table_name, conn, index_col='Date', parse_dates=True)
             
-            # --- Indikator Harga ---
-            dft['ma5'] = ta.sma(dft['close_price'], length=5)
-            dft['ma20'] = ta.sma(dft['close_price'], length=20)
-            dft['rsi'] = ta.rsi(dft['close_price'], length=14)
+            # --- ANALISIS TEKNIS (MA5 & MA20) ---
+            df['MA5'] = ta.sma(df['Close'], length=5)
+            df['MA20'] = ta.sma(df['Close'], length=20)
+            df['RSI'] = ta.rsi(df['Close'], length=14)
             
-            # --- Indikator Volume (Baru!) ---
-            # Menghitung rata-rata volume 10 hari untuk melihat lonjakan
-            dft['vol_ma10'] = ta.sma(dft['volume'], length=10)
-            
-            df_hasil = pd.concat([df_hasil, dft])
+            # --- DETEKSI ANOMALI (Z-Score berbasis MA20) ---
+            df['STD20'] = df['Close'].rolling(window=20).std()
+            df['Z_Score'] = (df['Close'] - df['MA20']) / df['STD20']
+            df['Is_Anomaly'] = df['Z_Score'].apply(lambda x: 1 if abs(x) > 2 else 0)
 
-        # 3. Simpan kembali ke database (replace tabel lama dengan data yang sudah ada indikatornya)
-        df_hasil.to_sql('history_saham', engine, if_exists='replace', index=False)
-        print("Analisis selesai: Indikator Harga & Volume berhasil diperbarui.")
+            # --- BACKTESTING (Strategy Return) ---
+            df['Signal'] = np.where(df['MA5'] > df['MA20'], 1, 0)
+            df['Daily_Return'] = df['Close'].pct_change()
+            df['Strategy_Return'] = df['Signal'].shift(1) * df['Daily_Return']
+            df['Cumulative_Strategy'] = (1 + df['Strategy_Return'].fillna(0)).cumprod()
 
-    except Exception as e:
-        print(f"Error saat menjalankan analisis: {e}")
+            # --- SIMPAN KEMBALI HASIL ANALISIS (Replace table dengan kolom baru) ---
+            df.to_sql(table_name, engine, if_exists='replace', index=True)
+            all_dfs[symbol] = df
+            print(f"Analisis Specialist untuk {symbol} telah diperbarui.")
 
-if __name__ == "__main__":
-    hitung_indikator()
+        # --- ANALISIS KORELASI MULTI-ASET ---
+        if 'BTC-USD' in all_dfs and 'BBRI.JK' in all_dfs:
+            corr_val = all_dfs['BTC-USD']['Close'].corr(all_dfs['BBRI.JK']['Close'])
+            corr_df = pd.DataFrame({'Date': [datetime.now()], 'Pair': ['BTC_BBRI'], 'Value': [corr_val]})
+            corr_df.to_sql('market_correlation', engine, if_exists='replace', index=False)
+            print(f"Korelasi BTC vs BBRI diperbarui: {corr_val:.2f}")
+
+assets = ['BBRI.JK', 'CTRA.JK', 'TLKM.JK', 'ASII.JK', 'BTC-USD']
+run_specialist_analysis(assets)
