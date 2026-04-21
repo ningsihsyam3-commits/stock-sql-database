@@ -6,6 +6,10 @@ from plotly.subplots import make_subplots
 
 # 1. Konfigurasi Database (Gunakan nama database yang konsisten)
 engine = create_engine('sqlite:///database_investasi.db')
+# Tambahkan ini di bawah baris engine = create_engine(...)
+from sqlalchemy import inspect
+inspector = inspect(engine)
+st.sidebar.write("Tabel yang terdeteksi:", inspector.get_table_names())
 
 # 2. Konfigurasi Halaman
 st.set_page_config(page_title="Investment Specialist Dashboard", layout="wide")
