@@ -14,11 +14,12 @@ def run_specialist_analysis(assets):
         
         try:
             # 1. Ambil data dari database
+            query = f'SELECT * FROM "{table_name}"'
             df = pd.read_sql_table(table_name, engine, index_col='Date', parse_dates=True)
             
             if df.empty:
                 print(f"Data {symbol} kosong, skip...")
-                continue
+                continue 
            
             # 2. Perbaikan Kolom (Proteksi MultiIndex yfinance)
             if isinstance(df.columns, pd.MultiIndex):
