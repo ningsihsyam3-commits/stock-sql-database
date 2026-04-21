@@ -68,7 +68,6 @@ def buat_grafik(df_ticker, ticker):
 
 def cek_sinyal_dan_visualisasi():
     engine = create_engine('sqlite:///database_investasi.db')
-    # Daftar aset yang PASTI ada di database Anda berdasarkan log terakhir
     assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
     
     url_text = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -76,21 +75,26 @@ def cek_sinyal_dan_visualisasi():
 
     for ticker in assets:
         try:
-            # SINKRONISASI: Ubah nama ticker menjadi nama tabel (Garis Bawah)
+            # 1. Pastikan nama tabel sinkron (pakai underscore)
             table_name = ticker.replace('.', '_').replace('-', '_')
             
-            # Gunakan tanda kutip ganda untuk nama tabel di SQL
-            query = f'SELECT * FROM "{table_name}" ORDER BY Date ASC'
-            df = pd.read_sql(query, engine, index_col='Date', parse_dates=True)
+            # 2. Load data dan PAKSA kolom Date menjadi index waktu
+            df = pd.read_sql(f'SELECT * FROM "{table_name}"', engine)
             
-            if df.empty or len(df) < 2:
+            if df.empty:
                 continue
-                
-            dft_plot = df.tail(30) # 30 hari terakhir
+
+            # Perbaikan krusial: Mengubah kolom Date menjadi DatetimeIndex
+            df['Date'] = pd.to_datetime(df['Date'])
+            df.set_index('Date', inplace=True)
+            df = df.sort_index() # Pastikan berurutan dari lama ke baru
+            
+            # 3. Ambil data untuk plotting & analisa
+            dft_plot = df.tail(30)
             curr = df.iloc[-1]
             prev = df.iloc[-2]
             
-            # Logika Sinyal
+            # --- LOGIKA SINYAL & CAPTION (Sama seperti sebelumnya) ---
             perubahan = ((curr['Close'] - prev['Close']) / prev['Close']) * 100
             tanda = "↗️" if perubahan > 0 else "↘️"
             
@@ -100,14 +104,13 @@ def cek_sinyal_dan_visualisasi():
             elif curr['MA5'] > curr['MA20']: sinyal = "✅ *Trend Bullish*"
             else: sinyal = "⚠️ *Trend Bearish*"
 
-            # Caption
             caption = (f"📊 *Aset: {ticker}*\n"
                        f"💰 Price: {curr['Close']:,.0f} ({tanda} {perubahan:.2f}%)\n"
                        f"📡 Signal: {sinyal}\n"
                        f"🛡️ Anomali: {'🚨 YA' if curr.get('Is_Anomaly') == 1 else '✅ Normal'}\n"
                        f"📈 Strategy: *{(curr.get('Cumulative_Strategy', 1)-1)*100:.2f}%*")
 
-            # Kirim Visual
+            # 4. Kirim Gambar
             img = buat_grafik(dft_plot, ticker)
             if img:
                 kirim_gambar_telegram(CHAT_ID, img, caption)
@@ -116,8 +119,7 @@ def cek_sinyal_dan_visualisasi():
                 requests.post(url_text, json={"chat_id": CHAT_ID, "text": caption, "parse_mode": "Markdown"})
 
         except Exception as e:
-            print(f"❌ Skip {ticker} karena error: {e}")
-
+            print(f"❌ Error pada {ticker}: {e}")
 if __name__ == "__main__":
     if TOKEN and CHAT_ID:
         cek_sinyal_dan_visualisasi()
