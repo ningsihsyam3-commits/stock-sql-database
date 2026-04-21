@@ -3,15 +3,28 @@ import pandas_ta as ta
 import numpy as np
 from sqlalchemy import create_engine
 from datetime import datetime
-
+from sqlalchemy import inspect # Tambahkan ini di bagian import paling atas  
+    
+        
 # Pastikan nama database sama dengan yang ada di file .yml
 engine = create_engine('sqlite:///database_investasi.db')
 
 def run_specialist_analysis(assets):
     all_dfs = {}
+    # --- TAMBAHKAN DEBUGGING INI ---
+    inspector = inspect(engine)
+    available_tables = inspector.get_table_names()
+    print(f"DEBUG: Tabel yang ditemukan di database: {available_tables}")
+    # -------------------------------
+
     for symbol in assets:
         # Menyesuaikan nama tabel agar sama dengan hasil download_data.py
         table_name = symbol.replace('.', '_').replace('-', '_')
+
+        # Cek apakah tabel ada di daftar tabel database
+        if table_name not in available_tables:
+            print(f"⚠️ Skip {symbol}: Tabel {table_name} tidak ditemukan dalam database!")
+            continue
         
         try:
             # 1. Ambil data dari database menggunakan Query yang aman
