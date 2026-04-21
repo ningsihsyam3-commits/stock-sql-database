@@ -7,9 +7,9 @@ from plotly.subplots import make_subplots
 # 1. Konfigurasi Database (Gunakan nama database yang konsisten)
 engine = create_engine('sqlite:///database_investasi.db')
 # Tambahkan ini di bawah baris engine = create_engine(...)
-from sqlalchemy import inspect
-inspector = inspect(engine)
-st.sidebar.write("Tabel yang terdeteksi:", inspector.get_table_names())
+#from sqlalchemy import inspect
+#inspector = inspect(engine)
+#st.sidebar.write("Tabel yang terdeteksi:", inspector.get_table_names())
 
 # 2. Konfigurasi Halaman
 st.set_page_config(page_title="Investment Specialist Dashboard", layout="wide")
@@ -102,12 +102,25 @@ try:
     with right_col:
         st.subheader("🔗 Market Correlation")
         try:
+            # Mengambil data korelasi yang benar dari database
             corr_df = pd.read_sql("SELECT * FROM market_correlation", engine)
-            st.write(f"Korelasi saat ini antara **BTC** dan **BBRI**:")
-            st.title(f"{corr_df['Value'].iloc[0]:.2f}")
-            st.info("Korelasi di atas 0.7 menunjukkan hubungan searah yang kuat.")
+            if not corr_df.empty:
+                # Menampilkan nilai korelasi dari kolom 'Value'
+                correlation_value = corr_df['Value'].iloc[0]
+                st.write(f"Korelasi saat ini antara **BTC** dan **{selected_asset}**:")
+                st.title(f"{correlation_value:.2f}")
+                
+                # Memberikan interpretasi warna berdasarkan nilai
+                if correlation_value > 0.7:
+                    st.success("Korelasi Positif Kuat")
+                elif correlation_value < -0.7:
+                    st.warning("Korelasi Negatif Kuat")
+                else:
+                    st.info("Korelasi Lemah/Netral")
+            else:
+                st.write("Tabel korelasi kosong.")
         except:
-            st.write("Data korelasi belum tersedia. Jalankan analysis.py terlebih dahulu.")
+            st.write("Data korelasi sedang diproses oleh pipeline.")
 
 except Exception as e:
     st.error(f"Gagal memuat data aset '{selected_asset}'. Pastikan database sudah terupdate.")
