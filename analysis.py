@@ -9,19 +9,20 @@ engine = create_engine('sqlite:///data_investasi.db')
 with engine.connect() as conn:
             df = pd.read_sql(table_name, conn, index_col='Date', parse_dates=True)
         
-        # --- PERBAIKAN KRUSIAL: Memastikan kolom 'Close' ditemukan ---
-        # Jika yfinance memberikan MultiIndex (misal: ('Close', 'BBRI.JK'))
+        True)
+        
+        # --- MULAI BAGIAN PERBAIKAN INDENTASI ---
+        # Pastikan baris 'if' di bawah ini sejajar dengan 'with engine.connect()'
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         
-        # Jika kolom bernama 'Adj Close', kita gunakan sebagai 'Close'
         if 'Close' not in df.columns and 'Adj Close' in df.columns:
             df['Close'] = df['Adj Close']
             
-        # Pastikan kolom Close sekarang ada
         if 'Close' not in df.columns:
-            print(f"Warning: Kolom Close tidak ditemukan untuk {symbol}. Kolom yang ada: {df.columns}")
+            print(f"Warning: Kolom Close tidak ditemukan untuk {symbol}")
             continue
+        # --- SELESAI BAGIAN PERBAIKAN ---
                     
             # --- ANALISIS TEKNIS (MA5 & MA20) ---
             df['MA5'] = ta.sma(df['Close'], length=5)
