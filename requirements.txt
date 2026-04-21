@@ -4,4 +4,5 @@ sqlalchemy
 pandas_ta
 plotly
 requests
-sqlalchemy
+matplotlib
+mplfinance
