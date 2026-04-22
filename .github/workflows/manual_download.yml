@@ -45,15 +45,16 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 1. Tandai file yang berubah (Stage changes)
-          git add database_investasi.db
+          # 1. Simpan perubahan lokal sementara agar 'pull' bisa berjalan bersih
+          git stash
           
-          # 2. Ambil perubahan terbaru dari cloud dengan rebase
-          # Perintah ini akan menyisipkan update Anda di atas update yang sudah ada
+          # 2. Ambil update terbaru dari repositori
           git pull origin main --rebase
           
-          # 3. Lakukan commit
-          git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
+          # 3. Kembalikan file database yang tadi disimpan sementara
+          git stash pop || echo "Tidak ada perubahan untuk dikembalikan"
           
-          # 4. Push ke repositori
+          # 4. Tambahkan, commit, dan kirim
+          git add database_investasi.db
+          git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
           git push origin main          
