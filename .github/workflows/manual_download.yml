@@ -4,6 +4,8 @@ on:
   schedule:
     # Menjalankan setiap hari Senin - Jumat pukul 09:00 UTC (17:00 WITA)
     - cron: '0 9 * * 1-5'
+  push:
+    branches: [ main ] # Ini akan berjalan otomatis setiap kali Anda update kode
   workflow_dispatch: # Agar bisa dijalankan manual untuk testing
 
 jobs:
