@@ -1,4 +1,4 @@
-name: Saham Visual Analytics Pipeline
+name: Run Strategic Asset Engine Data Update
 
 on:
   schedule:
@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Izin krusial agar Action bisa melakukan Push
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -43,3 +45,4 @@ jobs:
           git add database_investasi.db
           git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
           git push
+          
