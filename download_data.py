@@ -29,4 +29,5 @@ def download_incremental(assets):
 assets = [
     'BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'BBNI.JK',
     'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE'
-]download_incremental(assets)
+]
+download_incremental(assets)
