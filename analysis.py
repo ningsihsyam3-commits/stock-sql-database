@@ -118,8 +118,4 @@ if __name__ == "__main__":
     # Jika fungsi ini tidak diperlukan, Anda bisa menghapusnya
     # run_specialist_analysis(all_assets)
     
-    run_specialist_analysis(assets)
-
-
-
-
+   
