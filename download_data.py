@@ -1,37 +1,40 @@
-import pandas as pd
 import yfinance as yf
+import pandas as pd
 from sqlalchemy import create_engine
 
-# Konfigurasi database
-engine = create_engine('sqlite:///data_investasi.db')
+# Pastikan nama file database sama
+engine = create_engine('sqlite:///database_investasi.db')
 
-def download_incremental(assets):
-    for symbol in assets:
-        table_name = symbol.replace('.', '_').replace('-', '_')
-        
-        # 1. Cek Tanggal Terakhir menggunakan SQLAlchemy engine
-        try:
-            with engine.connect() as conn:
-                last_date = pd.read_sql(f"SELECT MAX(Date) FROM {table_name}", conn).iloc[0, 0]
-        except Exception:
-            last_date = None
-
-        # 2. Download Data
-        start_date = (pd.to_datetime(last_date) + pd.Timedelta(days=1)) if last_date else None
-        df_new = yf.download(symbol, start=start_date, period="1y" if not last_date else None)
-        
-        if not df_new.empty:
-            # 3. Simpan dengan mode APPEND
-            df_new.to_sql(table_name, engine, if_exists='append', index=True)
-            print(f"Data mentah {symbol} berhasil ditambahkan ke database.")
-
-# Pastikan daftar ini sama di semua file .py Anda
+# DAFTAR ASET (Sama persis dengan analysis.py)
 assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE']
 
-for ticker in assets:
-    data = yf.download(ticker, period='2y') # Ambil 2 tahun agar prediksi akurat
-    if not data.empty:
-        # Bersihkan nama untuk tabel SQL
-        clean_name = ticker.replace('.', '_').replace('-', '_').replace('^', '_')
-        data.to_sql(clean_name, engine, if_exists='replace')
+def run_downloader():
+    all_data = []
+    for ticker in assets:
+        try:
+            print(f"📥 Mengunduh {ticker}...")
+            # Ambil data 2 tahun agar indikator MA50 di analysis.py valid
+            df = yf.download(ticker, period='2y')
+            
+            if not df.empty:
+                df = df.reset_index()
+                # Standarisasi kolom untuk mempermudah analysis.py
+                df['ticker'] = ticker
+                df = df.rename(columns={
+                    'Date': 'date',
+                    'Close': 'close_price'
+                })
+                # Hanya simpan kolom minimal yang dibutuhkan
+                all_data.append(df[['date', 'ticker', 'close_price']])
+                print(f"✅ {ticker} berhasil diambil.")
+        except Exception as e:
+            print(f"❌ Gagal mengunduh {ticker}: {e}")
+    
+    if all_data:
+        final_df = pd.concat(all_data)
+        # VERIFIKASI: Tabel tujuan bernama 'history_saham'
+        final_df.to_sql('history_saham', engine, if_exists='replace', index=False)
+        print("\n✨ history_saham berhasil diperbarui.")
 
+if __name__ == "__main__":
+    run_downloader()
