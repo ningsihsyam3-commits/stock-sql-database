@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 engine = create_engine('sqlite:///database_investasi.db')
 
-def run_specialist_analysis(assets):
+def run_specialist_analysis(ticker):
     try:
         # VERIFIKASI: Membaca dari 'history_saham' di bagian paling atas
         full_df = pd.read_sql('SELECT * FROM history_saham', engine)
