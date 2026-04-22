@@ -90,5 +90,9 @@ def run_specialist_analysis(assets):
 
 if __name__ == "__main__":
     # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
-    assets = ['ASII.JK', 'BBNI.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK']
+    assets = [
+    'BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK',  # Top 4 Market Cap
+    'ICBP.JK', 'ADRO.JK',                      # Konsumsi & Energi
+    'BTC-USD', '^JKSE'                         # Kripto & Index IHSG
+    ]    
     run_specialist_analysis(assets)
