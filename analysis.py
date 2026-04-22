@@ -29,7 +29,7 @@ def run_specialist_analysis(ticker):
         print(f"❌ Gagal memuat data awal: {e}")
         return
 
-    for symbol in assets:
+    for symbol in ticker:
         try:
             target = symbol.upper().strip()
             # Logika Pencarian Fleksibel
