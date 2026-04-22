@@ -44,7 +44,11 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # AMBIL PERUBAHAN TERBARU DULU (SOLUSI ERROR)
+          git pull origin main --rebase
+
           git add database_investasi.db
           git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
-          git push
+          git push origin main
           
