@@ -26,8 +26,13 @@ def download_incremental(assets):
             print(f"Data mentah {symbol} berhasil ditambahkan ke database.")
 
 # Pastikan daftar ini sama di semua file .py Anda
-assets = [
-    'BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'BBNI.JK',
-    'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE'
-]
+assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE']
+
+for ticker in assets:
+    data = yf.download(ticker, period='2y') # Ambil 2 tahun agar prediksi akurat
+    if not data.empty:
+        # Bersihkan nama untuk tabel SQL
+        clean_name = ticker.replace('.', '_').replace('-', '_').replace('^', '_')
+        data.to_sql(clean_name, engine, if_exists='replace')
+
 download_incremental(assets)
