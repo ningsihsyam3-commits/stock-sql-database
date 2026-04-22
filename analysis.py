@@ -90,9 +90,15 @@ def run_specialist_analysis(assets):
 
 if __name__ == "__main__":
     # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
-    assets = [
-    'BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK',  # Top 4 Market Cap
-    'ICBP.JK', 'ADRO.JK',                      # Konsumsi & Energi
-    'BTC-USD', '^JKSE'                         # Kripto & Index IHSG
-    ]    
+    # Ganti bagian yang menyebabkan error 'history_saham' dengan ini:
+all_assets = ['BBRI_JK', 'TLKM_JK', 'BMRI_JK', 'ASII_JK', 'ICBP_JK', 'ADRO_JK', 'BTC_USD', '_JKSE']
+
+for table_name in all_assets:
+    try:
+        # Langsung baca tabel masing-masing aset
+        df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
+        print(f"✅ Memproses analisis untuk {table_name}")
+        # ... lanjut ke logika analisis/prediksi Anda ...
+    except Exception as e:
+        print(f"⚠️ Tabel {table_name} belum tersedia, melewati...")    
     run_specialist_analysis(assets)
