@@ -35,4 +35,3 @@ for ticker in assets:
         clean_name = ticker.replace('.', '_').replace('-', '_').replace('^', '_')
         data.to_sql(clean_name, engine, if_exists='replace')
 
-download_incremental(assets)
