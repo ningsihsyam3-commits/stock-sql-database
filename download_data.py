@@ -25,5 +25,8 @@ def download_incremental(assets):
             df_new.to_sql(table_name, engine, if_exists='append', index=True)
             print(f"Data mentah {symbol} berhasil ditambahkan ke database.")
 
-assets = ['BBRI.JK', 'CTRA.JK', 'TLKM.JK', 'ASII.JK', 'BTC-USD']
-download_incremental(assets)
+# Pastikan daftar ini sama di semua file .py Anda
+assets = [
+    'BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'BBNI.JK',
+    'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE'
+]download_incremental(assets)
