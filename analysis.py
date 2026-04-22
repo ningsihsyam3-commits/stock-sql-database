@@ -89,34 +89,34 @@ def run_specialist_analysis(assets):
         print(f"❌ Gagal membuat korelasi: {e}")
 
 if __name__ == "__main__":
-    # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
-    # Ganti bagian yang menyebabkan error 'history_saham' dengan ini:
-# --- BAGIAN AWAL SKRIP ---
-# Hapus bagian "SELECT * FROM history_saham" yang lama
+    # Semua baris di bawah ini sekarang menjorok 4 spasi ke dalam
+    all_assets = ['BBRI_JK', 'TLKM_JK', 'BMRI_JK', 'ASII_JK', 'ICBP_JK', 'ADRO_JK', 'BTC_USD', '_JKSE']
 
-all_assets = ['BBRI_JK', 'TLKM_JK', 'BMRI_JK', 'ASII_JK', 'ICBP_JK', 'ADRO_JK', 'BTC_USD', '_JKSE']
-
-for table_name in all_assets:
-    try:
-        # Perhatikan spasi di baris ini (menjorok ke dalam)
-        query = f"SELECT * FROM {table_name}"
-        df = pd.read_sql(query, engine)
-        
-        if not df.empty:
-            # Baris ini juga harus lebih menjorok ke dalam
-            print(f"✅ Memproses analisis untuk {table_name}")
+    for table_name in all_assets:
+        try:
+            # Masuk lagi 8 spasi ke dalam karena di bawah 'for'
+            query = f"SELECT * FROM {table_name}"
+            df = pd.read_sql(query, engine)
             
-            # --- MASUKKAN LOGIKA PREDIKSI ANDA DI SINI ---
-            # Contoh: df['MA20'] = df['Close'].rolling(window=20).mean()
-            
-        else:
-            print(f"⚠️ Tabel {table_name} kosong.")
+            if not df.empty:
+                print(f"✅ Memproses analisis untuk {table_name}")
+                
+                # Tambahkan logika prediksi dasar agar tidak kosong
+                df['MA20'] = df['Close'].rolling(window=20).mean()
+                df['MA50'] = df['Close'].rolling(window=50).mean()
+                
+                # Simpan kembali hasil analisis ke database jika diperlukan
+                # df.to_sql(f"analisis_{table_name}", engine, if_exists='replace')
+                
+            else:
+                print(f"⚠️ Tabel {table_name} kosong.")
 
-    except Exception as e:
-        # Baris ini sejajar dengan 'try'
-        print(f"❌ Gagal memproses {table_name}: {e}")
-
-# --- BAGIAN AKHIR SKRIP ---    
+        except Exception as e:
+            print(f"❌ Gagal memproses {table_name}: {e}")
+    
+    # Pastikan fungsi ini memanggil variabel yang benar (all_assets)
+    # Jika fungsi ini tidak diperlukan, Anda bisa menghapusnya
+    # run_specialist_analysis(all_assets)
     
     run_specialist_analysis(assets)
 
