@@ -91,14 +91,35 @@ def run_specialist_analysis(assets):
 if __name__ == "__main__":
     # Ganti daftar di bawah ini agar SAMA PERSIS dengan isi database Anda
     # Ganti bagian yang menyebabkan error 'history_saham' dengan ini:
+# --- BAGIAN AWAL SKRIP ---
+# Hapus bagian "SELECT * FROM history_saham" yang lama
+
 all_assets = ['BBRI_JK', 'TLKM_JK', 'BMRI_JK', 'ASII_JK', 'ICBP_JK', 'ADRO_JK', 'BTC_USD', '_JKSE']
 
 for table_name in all_assets:
     try:
-        # Langsung baca tabel masing-masing aset
-        df = pd.read_sql(f"SELECT * FROM {table_name}", engine)
-        print(f"✅ Memproses analisis untuk {table_name}")
-        # ... lanjut ke logika analisis/prediksi Anda ...
+        # Perhatikan spasi di baris ini (menjorok ke dalam)
+        query = f"SELECT * FROM {table_name}"
+        df = pd.read_sql(query, engine)
+        
+        if not df.empty:
+            # Baris ini juga harus lebih menjorok ke dalam
+            print(f"✅ Memproses analisis untuk {table_name}")
+            
+            # --- MASUKKAN LOGIKA PREDIKSI ANDA DI SINI ---
+            # Contoh: df['MA20'] = df['Close'].rolling(window=20).mean()
+            
+        else:
+            print(f"⚠️ Tabel {table_name} kosong.")
+
     except Exception as e:
-        print(f"⚠️ Tabel {table_name} belum tersedia, melewati...")    
+        # Baris ini sejajar dengan 'try'
+        print(f"❌ Gagal memproses {table_name}: {e}")
+
+# --- BAGIAN AKHIR SKRIP ---    
+    
     run_specialist_analysis(assets)
+
+
+
+
