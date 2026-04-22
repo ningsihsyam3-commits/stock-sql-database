@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 engine = create_engine('sqlite:///database_investasi.db')
 
-def run_specialist_analysis(ticker):
+def run_specialist_analysis(assets):
     try:
         # VERIFIKASI: Membaca dari 'history_saham' di bagian paling atas
         full_df = pd.read_sql('SELECT * FROM history_saham', engine)
@@ -29,7 +29,7 @@ def run_specialist_analysis(ticker):
         print(f"❌ Gagal memuat data awal: {e}")
         return
 
-    for symbol in ticker:
+    for symbol in assets:
         try:
             target = symbol.upper().strip()
             # Logika Pencarian Fleksibel
