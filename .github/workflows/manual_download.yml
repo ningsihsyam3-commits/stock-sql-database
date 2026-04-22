@@ -44,11 +44,16 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # AMBIL PERUBAHAN TERBARU DULU (SOLUSI ERROR)
-          git pull origin main --rebase
-
-          git add database_investasi.db
-          git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
-          git push origin main
           
+          # 1. Tandai file yang berubah (Stage changes)
+          git add database_investasi.db
+          
+          # 2. Ambil perubahan terbaru dari cloud dengan rebase
+          # Perintah ini akan menyisipkan update Anda di atas update yang sudah ada
+          git pull origin main --rebase
+          
+          # 3. Lakukan commit
+          git commit -m "Auto-update: Ingestion, Analysis, & Anomaly Detection $(date)" || echo "No changes to commit"
+          
+          # 4. Push ke repositori
+          git push origin main          
