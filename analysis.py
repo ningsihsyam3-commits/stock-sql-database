@@ -61,7 +61,7 @@ def run_specialist_analysis(assets):
             # --- ANALISIS TEKNIKAL ---
             # Pastikan data cukup untuk MA50
             if len(df) < 50:
-                print(f"⚠️ Data {symbol} terlalu pendek untuk MA50')
+                print(f"⚠️ Data {symbol} terlalu pendek untuk MA50")
                 continue 
                 
             # --- ANALISIS (LAMA + PREDIKSI BARU) ---
