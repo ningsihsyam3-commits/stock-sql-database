@@ -12,7 +12,7 @@ def run_specialist_analysis(assets):
         
         # Pembersihan dan Mapping (Logika Anda)
         full_df.columns = full_df.columns.str.strip()
-        cols_to_drop = ['ma5', 'ma20', 'rsi', 'MA5', 'MA20', 'RSI', 'MA50']
+        cols_to_drop = ['ma5', 'ma20', 'rsi', 'MA5', 'MA20', 'RSI', 'MA50', 'Z_Score']
         full_df = full_df.drop(columns=[c for c in cols_to_drop if c in full_df.columns])
         
         full_df = full_df.rename(columns={
@@ -57,6 +57,7 @@ def run_specialist_analysis(assets):
             df['Cumulative_Strategy'] = (1 + df['Strategy_Return'].fillna(0)).cumprod()
 
             # PREDIKSI TREND BARU
+            df['MA50'] = ta.sma(df['Close'], length=50)
             df['Trend_Signal'] = np.where(df['MA20'] > df['MA50'], 'Bullish', 'Bearish')
 
             # Simpan ke tabel individual
