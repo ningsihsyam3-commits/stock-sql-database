@@ -12,19 +12,36 @@ def run_specialist_analysis(assets):
         
         # Pembersihan dan Mapping (Logika Anda)
         full_df.columns = full_df.columns.str.strip()
-        cols_to_drop = ['ma5', 'ma20', 'rsi', 'MA5', 'MA20', 'RSI', 'MA50', 'Z_Score']
+        # Mencari kolom yang kemungkinan besar adalah ticker saham
+        potential_ticker_cols = ['ticker', 'Ticker', 'symbol', 'Symbol', 'SYMBOLS']
+        found_ticker_col = next((c for c in potential_ticker_cols if c in full_df.columns), None)
+        
+        # Deteksi otomatis nama kolom untuk harga penutup
+        potential_close_cols = ['close_price', 'Close', 'close', 'Adj Close']
+        found_close_col = next((c for c in potential_close_cols if c in full_df.columns), None)
+
+        if not found_ticker_col or not found_close_col:
+            raise KeyError(f"Kolom Ticker atau Close tidak ditemukan. Kolom tersedia: {list(full_df.columns)}")
+
+        # Pembersihan Kolom Indikator Lama (agar tidak duplikasi)
+        cols_to_drop = ['ma5', 'ma20', 'rsi', 'MA5', 'MA20', 'RSI', 'MA50', 'Z_Score', 'Is_Anomaly', 'Trend_Signal']
         full_df = full_df.drop(columns=[c for c in cols_to_drop if c in full_df.columns])
         
-        full_df = full_df.rename(columns={
-            'date': 'Date',
-            'ticker': 'Symbol',
-            'close_price': 'Close'
-        })
+        # Rename ke standar analisis
+        mapping = {found_ticker_col: 'Symbol', found_close_col: 'Close'}
+        # Jika ada kolom 'date' atau 'Date'
+        if 'date' in full_df.columns: mapping['date'] = 'Date'
+        elif 'Date' in full_df.columns: mapping['Date'] = 'Date'
+        
+        full_df = full_df.rename(columns=mapping)
         
         full_df['Symbol'] = full_df['Symbol'].astype(str).str.strip().str.upper()
-        full_df['Date'] = pd.to_datetime(full_df['Date'])
-        full_df.set_index('Date', inplace=True)
-        print("✅ Data history_saham dimuat. Memulai analisis teknikal...")
+        if 'Date' in full_df.columns:
+            full_df['Date'] = pd.to_datetime(full_df['Date'])
+            full_df.set_index('Date', inplace=True)
+        
+        print(f"✅ Sinkronisasi Berhasil. Menggunakan kolom: {mapping}")
+    
     except Exception as e:
         print(f"❌ Gagal memuat data awal: {e}")
         return
@@ -40,13 +57,20 @@ def run_specialist_analysis(assets):
 
             if df.empty:
                 continue
-
+                
+            # --- ANALISIS TEKNIKAL ---
+            # Pastikan data cukup untuk MA50
+            if len(df) < 50:
+                print(f"⚠️ Data {symbol} terlalu pendek untuk MA50')
+                continue 
+                
             # --- ANALISIS (LAMA + PREDIKSI BARU) ---
             df['MA5'] = ta.sma(df['Close'], length=5)
             df['MA20'] = ta.sma(df['Close'], length=20)
             df['MA50'] = ta.sma(df['Close'], length=50) # Prediksi Baru
             df['RSI'] = ta.rsi(df['Close'], length=14)
             
+            # Anomali & Strategy
             df['STD20'] = df['Close'].rolling(window=20).std()
             df['Z_Score'] = (df['Close'] - df['MA20']) / df['STD20']
             df['Is_Anomaly'] = df['Z_Score'].apply(lambda x: 1 if abs(x) > 2 else 0)
