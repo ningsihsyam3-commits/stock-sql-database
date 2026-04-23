@@ -9,9 +9,14 @@ def run_specialist_analysis(assets):
     try:
         # VERIFIKASI: Membaca dari 'history_saham' di bagian paling atas
         full_df = pd.read_sql('SELECT * FROM history_saham', engine)
-        
+
+        # Mengatasi Multi-Index Columns
+        if isinstance(full_df.columns, pd.MultiIndex):
+            full_df.columns = full_df.columns.get_level_values(0)
+
         # Pembersihan dan Mapping (Logika Anda)
-        full_df.columns = full_df.columns.str.strip()
+        full_df.columns = [str(c).strip() for c in full_df.columns]
+        
         # Mencari kolom yang kemungkinan besar adalah ticker saham
         potential_ticker_cols = ['ticker', 'Ticker', 'symbol', 'Symbol', 'SYMBOLS']
         found_ticker_col = next((c for c in potential_ticker_cols if c in full_df.columns), None)
