@@ -10,45 +10,12 @@ def run_specialist_analysis(assets):
         # VERIFIKASI: Membaca dari 'history_saham' di bagian paling atas
         full_df = pd.read_sql('SELECT * FROM history_saham', engine)
 
-        # Mengatasi Multi-Index Columns
-        if isinstance(full_df.columns, pd.MultiIndex):
-            full_df.columns = full_df.columns.get_level_values(0)
-
-        # Pembersihan dan Mapping (Logika Anda)
-        full_df.columns = [str(c).strip() for c in full_df.columns]
+        full_df = full_df.rename(columns={'date': 'Date', 'ticker': 'Symbol', 'close_price': 'Close'})
+        full_df['Date'] = pd.to_datetime(full_df['Date'])
         
-        # Mencari kolom yang kemungkinan besar adalah ticker saham
-        potential_ticker_cols = ['ticker', 'Ticker', 'symbol', 'Symbol', 'SYMBOLS']
-        found_ticker_col = next((c for c in potential_ticker_cols if c in full_df.columns), None)
-        
-        # Deteksi otomatis nama kolom untuk harga penutup
-        potential_close_cols = ['close_price', 'Close', 'close', 'Adj Close']
-        found_close_col = next((c for c in potential_close_cols if c in full_df.columns), None)
-
-        if not found_ticker_col or not found_close_col:
-            raise KeyError(f"Kolom Ticker atau Close tidak ditemukan. Kolom tersedia: {list(full_df.columns)}")
-
-        # Pembersihan Kolom Indikator Lama (agar tidak duplikasi)
-        cols_to_drop = ['ma5', 'ma20', 'rsi', 'MA5', 'MA20', 'RSI', 'MA50', 'Z_Score', 'Is_Anomaly', 'Trend_Signal']
-        full_df = full_df.drop(columns=[c for c in cols_to_drop if c in full_df.columns])
-        
-        # Rename ke standar analisis
-        mapping = {found_ticker_col: 'Symbol', found_close_col: 'Close'}
-        # Jika ada kolom 'date' atau 'Date'
-        if 'date' in full_df.columns: mapping['date'] = 'Date'
-        elif 'Date' in full_df.columns: mapping['Date'] = 'Date'
-        
-        full_df = full_df.rename(columns=mapping)
-        
-        full_df['Symbol'] = full_df['Symbol'].astype(str).str.strip().str.upper()
-        if 'Date' in full_df.columns:
-            full_df['Date'] = pd.to_datetime(full_df['Date'])
-            full_df.set_index('Date', inplace=True)
-        
-        print(f"✅ Sinkronisasi Berhasil. Menggunakan kolom: {mapping}")
-    
+        print("✅ Data dimuat. Memproses indikator...")
     except Exception as e:
-        print(f"❌ Gagal memuat data awal: {e}")
+        print(f"❌ Error muat data: {e}")
         return
 
     for symbol in assets:
@@ -56,12 +23,10 @@ def run_specialist_analysis(assets):
             target = symbol.upper().strip()
             # Logika Pencarian Fleksibel
             df = full_df[full_df['Symbol'] == target].copy()
-            if df.empty:
-                base = target.split('.')[0].split('-')[0]
-                df = full_df[full_df['Symbol'].str.contains(base, na=False)].copy()
-
-            if df.empty:
+            if df.empty:  
                 continue
+
+            df = df.sort_values('Date').set_index('Date')
                 
             # --- ANALISIS TEKNIKAL ---
             # Pastikan data cukup untuk MA50
