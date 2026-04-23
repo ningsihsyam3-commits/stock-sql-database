@@ -7,15 +7,23 @@ engine = create_engine('sqlite:///database_investasi.db')
 
 def run_specialist_analysis(assets):
     try:
-        # VERIFIKASI: Membaca dari 'history_saham' di bagian paling atas
-        full_df = pd.read_sql('SELECT * FROM history_saham', engine)
-
-        full_df = full_df.rename(columns={'date': 'Date', 'ticker': 'Symbol', 'close_price': 'Close'})
-        full_df['Date'] = pd.to_datetime(full_df['Date'])
+        # SINKRONISASI TOTAL: Kecilkan semua nama kolom
+        full_df.columns = [str(c).lower() for c in full_df.columns]
         
-        print("✅ Data dimuat. Memproses indikator...")
+        # Rename ke standar internal untuk analisis
+        full_df = full_df.rename(columns={
+            'date': 'Date',
+            'ticker': 'Symbol',
+            'close': 'Close'
+        })
+        
+        # Pastikan kolom Date benar-benar bertipe datetime
+        full_df['Date'] = pd.to_datetime(full_df['Date'], errors='coerce')
+        full_df = full_df.dropna(subset=['Date']) # Buang jika ada baris tanggal rusak
+        
+        print("✅ Sinkronisasi Kolom Berhasil.")
     except Exception as e:
-        print(f"❌ Error muat data: {e}")
+        print(f"❌ Gagal pada tahap awal: {e}")
         return
 
     for symbol in assets:
