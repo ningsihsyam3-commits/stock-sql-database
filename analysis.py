@@ -6,21 +6,25 @@ from sqlalchemy import create_engine
 engine = create_engine('sqlite:///database_investasi.db')
 
 def run_specialist_analysis(assets):
+    full_df = None # Initialize full_df outside the try block for broader scope
     try:
+        # Muat data SEBELUM mencoba mengakses kolomnya
+        full_df = pd.read_sql('SELECT * FROM history_saham', engine)
+
         # SINKRONISASI TOTAL: Kecilkan semua nama kolom
         full_df.columns = [str(c).lower() for c in full_df.columns]
-        
+
         # Rename ke standar internal untuk analisis
         full_df = full_df.rename(columns={
             'date': 'Date',
             'ticker': 'Symbol',
             'close': 'Close'
         })
-        
+
         # Pastikan kolom Date benar-benar bertipe datetime
         full_df['Date'] = pd.to_datetime(full_df['Date'], errors='coerce')
         full_df = full_df.dropna(subset=['Date']) # Buang jika ada baris tanggal rusak
-        
+
         print("✅ Sinkronisasi Kolom Berhasil.")
     except Exception as e:
         print(f"❌ Gagal pada tahap awal: {e}")
@@ -31,28 +35,28 @@ def run_specialist_analysis(assets):
             target = symbol.upper().strip()
             # Logika Pencarian Fleksibel
             df = full_df[full_df['Symbol'] == target].copy()
-            if df.empty:  
+            if df.empty:
                 continue
 
             df = df.sort_values('Date').set_index('Date')
-                
+
             # --- ANALISIS TEKNIKAL ---
             # Pastikan data cukup untuk MA50
             if len(df) < 50:
                 print(f"⚠️ Data {symbol} terlalu pendek untuk MA50")
-                continue 
-                
+                continue
+
             # --- ANALISIS (LAMA + PREDIKSI BARU) ---
             df['MA5'] = ta.sma(df['Close'], length=5)
             df['MA20'] = ta.sma(df['Close'], length=20)
             df['MA50'] = ta.sma(df['Close'], length=50) # Prediksi Baru
             df['RSI'] = ta.rsi(df['Close'], length=14)
-            
+
             # Anomali & Strategy
             df['STD20'] = df['Close'].rolling(window=20).std()
             df['Z_Score'] = (df['Close'] - df['MA20']) / df['STD20']
             df['Is_Anomaly'] = df['Z_Score'].apply(lambda x: 1 if abs(x) > 2 else 0)
-            
+
             df['Signal'] = np.where(df['MA5'] > df['MA20'], 1, 0)
             df['Daily_Return'] = df['Close'].pct_change()
             df['Strategy_Return'] = df['Signal'].shift(1) * df['Daily_Return']
