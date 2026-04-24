@@ -68,7 +68,7 @@ def buat_grafik(df_ticker, ticker):
 
 def cek_sinyal_dan_visualisasi():
     engine = create_engine('sqlite:///database_investasi.db')
-    assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE']
+    assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD']
     
     url_text = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     requests.post(url_text, json={"chat_id": CHAT_ID, "text": "🔔 *LAPORAN ANALISIS SMART BOT* 🔔", "parse_mode": "Markdown"})
