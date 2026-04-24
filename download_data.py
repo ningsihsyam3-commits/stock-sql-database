@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 engine = create_engine('sqlite:///database_investasi.db')
-assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE']
+assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD']
 
 def run_downloader():
     all_data = []
