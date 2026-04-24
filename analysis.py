@@ -87,5 +87,5 @@ def run_specialist_analysis(assets):
 
 if __name__ == "__main__":
     # DAFTAR ASET (Verifikasi: Sama dengan download.py)
-    all_assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD', '^JKSE']
+    all_assets = ['BBRI.JK', 'TLKM.JK', 'BMRI.JK', 'ASII.JK', 'ICBP.JK', 'ADRO.JK', 'BTC-USD']
     run_specialist_analysis(all_assets)
