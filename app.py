@@ -136,9 +136,3 @@ if asset_tables:
 else: # This else belongs to 'if asset_tables:'
     st.sidebar.error("Database Kosong")
     st.warning("Tidak ada tabel aset yang ditemukan di database. Pastikan data telah diunduh dan dianalisis.")
-"""
-
-with open("app.py", "w") as f:
-    f.write(streamlit_code)
-
-print("Streamlit code saved to app.py")
