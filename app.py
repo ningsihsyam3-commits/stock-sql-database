@@ -12,7 +12,7 @@ st.title('Dashboard Analisis Investasi')
 # Daftar aset yang tersedia (sesuai dengan tabel di database)
 # Kita ambil daftar tabel yang bukan 'history_saham' dan 'market_correlation'
 def get_asset_tables():
-    inspector = create_engine('sqlite:///database_investasi.db').inspector
+    inspector = inspect(engine)
     all_tables = inspector.get_table_names()
     asset_tables = [table for table in all_tables if table not in ['history_saham', 'market_correlation']]
     return asset_tables
