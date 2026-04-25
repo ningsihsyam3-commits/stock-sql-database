@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Dashboard Analisis Investasi Saham
 # Koneksi ke database SQLite
 engine = create_engine('sqlite:///database_investasi.db')
 
-st.title('📈 Dashboard Analisis Investasi Saham')
+st.title('📈 Strategic Asset Engine')
 
 # Daftar aset yang tersedia (sesuai dengan tabel di database)
 def get_asset_tables():
