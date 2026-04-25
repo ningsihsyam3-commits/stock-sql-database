@@ -84,7 +84,7 @@ if selected_asset_raw:
             min_data_required = max(ma_short_length, ma_medium_length, ma_long_length, rsi_length)
             if len(df_asset) < min_data_required:
                 st.warning(f"Data terlalu pendek ({len(df_asset)} baris) untuk menghitung semua indikator dengan panjang yang dipilih (minimal {min_data_required} baris diperlukan). Beberapa indikator mungkin kosong.")
-            
+
             df_asset[f'MA{ma_short_length}'] = ta.sma(df_asset['Close'], length=ma_short_length)
             df_asset[f'MA{ma_medium_length}'] = ta.sma(df_asset['Close'], length=ma_medium_length)
             df_asset[f'MA{ma_long_length}'] = ta.sma(df_asset['Close'], length=ma_long_length)
@@ -190,10 +190,10 @@ st.sidebar.header('Analisis Korelasi Pasar')
 
 try:
     # Load all historical data for correlation calculation (filtered by date range)
-    all_assets_data = pd.read_sql('SELECT Date, ticker, close FROM history_saham', engine)
-    all_assets_data['Date'] = pd.to_datetime(all_assets_data['Date'])
-    all_assets_data = all_assets_data[(all_assets_data['Date'] >= pd.to_datetime(start_date)) & (all_assets_data['Date'] <= pd.to_datetime(end_date))]
-    pivot_df = all_assets_data.pivot(index='Date', columns='ticker', values='close')
+    all_assets_data = pd.read_sql('SELECT date, ticker, close FROM history_saham', engine)
+    all_assets_data['date'] = pd.to_datetime(all_assets_data['date'])
+    all_assets_data = all_assets_data[(all_assets_data['date'] >= pd.to_datetime(start_date)) & (all_assets_data['date'] <= pd.to_datetime(end_date))]
+    pivot_df = all_assets_data.pivot(index='date', columns='ticker', values='close')
     correlation_matrix = pivot_df.corr()
 
     st.subheader('Analisis Korelasi Antar Aset (Heatmap)')
@@ -208,12 +208,12 @@ try:
         st.info("Tidak ada data yang cukup untuk menghitung korelasi antar aset dalam rentang tanggal yang dipilih.")
 
     # Display existing market correlation data (e.g., BBRI vs BMRI)
-    df_corr = pd.read_sql('SELECT * FROM market_correlation', engine)
-    if not df_corr.empty:
-        st.sidebar.subheader('Korelasi Spesifik (BBRI vs BMRI)')
-        st.sidebar.dataframe(df_corr)
-    else:
-        st.sidebar.info("Tabel korelasi pasar kosong.")
+    # df_corr = pd.read_sql('SELECT * FROM market_correlation', engine)
+    # if not df_corr.empty:
+    #     st.sidebar.subheader('Korelasi Spesifik (BBRI vs BMRI)')
+    #     st.sidebar.dataframe(df_corr)
+    # else:
+    #     st.sidebar.info("Tabel korelasi pasar kosong.")
 except Exception as e:
     st.sidebar.error(f"Gagal memuat korelasi pasar: {e}")
 
