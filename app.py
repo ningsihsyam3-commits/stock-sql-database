@@ -12,9 +12,13 @@ st.title('Dashboard Analisis Investasi')
 # Daftar aset yang tersedia (sesuai dengan tabel di database)
 # Kita ambil daftar tabel yang bukan 'history_saham' dan 'market_correlation'
 def get_asset_tables():
-    inspector = inspect(engine)
-    all_tables = inspector.get_table_names()
-    asset_tables = [table for table in all_tables if table not in ['history_saham', 'market_correlation']]
+    # Gunakan query SQL langsung untuk mendapatkan nama tabel
+    query = "SELECT name FROM sqlite_master WHERE type='table';"
+    df_tables = pd.read_sql(query, engine)
+    all_tables = df_tables['name'].tolist()
+
+    # Filter tabel sistem SQLite dan tabel analisis lainnya
+    asset_tables = [table for table in all_tables if table not in ['history_saham', 'market_correlation', 'sqlite_sequence']]
     return asset_tables
 
 asset_options = get_asset_tables()
