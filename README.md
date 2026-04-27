@@ -20,3 +20,4 @@ An autonomous end-to-end pipeline that fetches stock market data, performs techn
 1. **Download**: `download_data.py` fetches the latest market OHLCV data.
 2. **Analyze**: `analys.py` processes raw data into technical signals.
 3. **Notify**: `notify.py` renders visual charts and pushes alerts to Telegram.
+4. **Dashboard**: `app.py`
